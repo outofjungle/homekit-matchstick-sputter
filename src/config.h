@@ -22,3 +22,10 @@ constexpr uint8_t NUM_LEDS_PER_CHANNEL = 200;  // 200 LEDs per channel
 // Blink Configuration
 constexpr unsigned long BLINK_INTERVAL_MS = 500;  // 500ms on, 500ms off = 1Hz blink
 constexpr unsigned long DEBOUNCE_MS = 50;        // Button debounce time
+
+// HomeSpan Configuration
+constexpr const char* DEVICE_NAME = "Sputter Lights";
+constexpr const char* DEVICE_MANUFACTURER = "0x76656E Labs";
+constexpr const char* DEVICE_SERIAL = "SPT-001";
+constexpr const char* DEVICE_MODEL = "4CH-LED";
+constexpr const char* DEVICE_FIRMWARE = "1.0.0";

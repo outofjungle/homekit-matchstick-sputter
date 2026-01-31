@@ -3,38 +3,41 @@
 
 .PHONY: all build clean erase flash monitor flash-monitor help
 
+# PlatformIO binary location
+PIO := $(HOME)/.local/bin/pio
+
 # Default target
 all: build
 
 # Build the project
 build:
 	@echo "Building project..."
-	pio run
+	$(PIO) run
 
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
-	pio run --target clean
+	$(PIO) run --target clean
 
 # Erase flash memory on device
 erase:
 	@echo "Erasing flash memory..."
-	pio run --target erase
+	$(PIO) run --target erase
 
 # Flash firmware to device
 flash:
 	@echo "Flashing firmware to device..."
-	pio run --target upload
+	$(PIO) run --target upload
 
 # Monitor serial output
 monitor:
 	@echo "Starting serial monitor (Ctrl+C to exit)..."
-	pio device monitor
+	$(PIO) device monitor
 
 # Flash and immediately start monitoring
 flash-monitor: flash
 	@echo "Starting serial monitor (Ctrl+C to exit)..."
-	pio device monitor
+	$(PIO) device monitor
 
 # Show help
 help:

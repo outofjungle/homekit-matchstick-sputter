@@ -20,6 +20,7 @@ enum ButtonState {
     BTN_IDLE,               // Not pressed
     BTN_PRESSED,            // Pressed < 5s (short press for mode cycle)
     BTN_NOTIFICATION,       // Showing warning animation (3x cycles) - runs to completion
+    BTN_RESET_CONFIRM,      // Showing red confirmation for 3s before reset
     BTN_RESET,              // Factory reset triggered
     BTN_CANCELLED_CONFIRM   // Animation complete, button was released, showing green
 };
@@ -109,7 +110,7 @@ void updateButtonStateMachine() {
 
                 // Start warning animation (3 complete cycles)
                 // ~300ms per step = ~2.4s per cycle, ~7.2s total for 3 cycles
-                notificationMgr->start(PATTERN_WARNING, CRGB::Blue, 300, 3);
+                notificationMgr->start(PATTERN_WARNING, CRGB::Red, 300, 3);
             }
             break;
 
@@ -134,11 +135,23 @@ void updateButtonStateMachine() {
                     // Show green confirmation
                     notificationMgr->start(PATTERN_SOLID, CRGB::Green, 0, 0);
                 } else {
-                    // Button still held - initiate factory reset
-                    Serial.println("Animation complete - button still held, initiating reset");
-                    buttonState = BTN_RESET;
-                    handleFactoryReset();
+                    // Button still held - show red confirmation for 3s before reset
+                    Serial.println("Animation complete - button still held, showing red confirmation");
+                    buttonState = BTN_RESET_CONFIRM;
+                    confirmStartMs = now;
+
+                    // Show red confirmation (solid for 3 seconds)
+                    notificationMgr->start(PATTERN_SOLID, CRGB::Red, 0, 0);
                 }
+            }
+            break;
+
+        case BTN_RESET_CONFIRM:
+            if ((now - confirmStartMs) >= FACTORY_RESET_CONFIRM_MS) {
+                // 3 seconds elapsed - initiate factory reset
+                Serial.println("Red confirmation complete - initiating factory reset");
+                buttonState = BTN_RESET;
+                handleFactoryReset();
             }
             break;
 

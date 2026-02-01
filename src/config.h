@@ -10,8 +10,8 @@ constexpr uint8_t PIN_STATUS_LED = 22;     // Single-color LED for status indica
 // External LED Strip Channels (WS2811, 200 LEDs each)
 constexpr uint8_t PIN_LED_CH1 = 26;        // LED Strip Channel 1 Data
 constexpr uint8_t PIN_LED_CH2 = 18;        // LED Strip Channel 2 Data
-constexpr uint8_t PIN_LED_CH3 = 25;        // LED Strip Channel 3 Data
-constexpr uint8_t PIN_LED_CH4 = 19;        // LED Strip Channel 4 Data
+constexpr uint8_t PIN_LED_CH3 = 19;        // LED Strip Channel 3 Data
+constexpr uint8_t PIN_LED_CH4 = 25;        // LED Strip Channel 4 Data
 
 // Button Input
 constexpr uint8_t PIN_BUTTON = 39;         // Button input (GPIO39 - input only)

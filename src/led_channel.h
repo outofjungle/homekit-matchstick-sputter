@@ -24,14 +24,25 @@ struct DEV_LedChannel : Service::LightBulb {
     static constexpr unsigned long BOOT_FLASH_DURATION_MS = 5000;
     static constexpr int BOOT_FLASH_BRIGHTNESS = 25;  // Visible brightness during flash
 
-    // Default hue values per channel (0°, 90°, 270°, 180°)
+    // Default hue values per channel (Red, Green, Blue, White)
     static int getDefaultHue(int channelNum) {
         switch (channelNum) {
             case 1: return 0;    // Red
-            case 2: return 90;   // Yellow-green
-            case 3: return 270;  // Purple/violet
-            case 4: return 180;  // Cyan
+            case 2: return 120;  // Green
+            case 3: return 240;  // Blue
+            case 4: return 0;    // White (hue doesn't matter when saturation=0)
             default: return 0;
+        }
+    }
+
+    // Default saturation per channel (100% for RGB, 0% for White)
+    static int getDefaultSaturation(int channelNum) {
+        switch (channelNum) {
+            case 1: return 100;  // Red - full saturation
+            case 2: return 100;  // Green - full saturation
+            case 3: return 100;  // Blue - full saturation
+            case 4: return 0;    // White - no saturation
+            default: return 100;
         }
     }
 
@@ -77,22 +88,23 @@ struct DEV_LedChannel : Service::LightBulb {
         } else {
             // No saved state - use channel-specific defaults
             int defaultHue = getDefaultHue(channelNum);
+            int defaultSat = getDefaultSaturation(channelNum);
             power = new Characteristic::On(1);                         // Default: On
             hue = new Characteristic::Hue(defaultHue);                 // Channel-specific hue
-            saturation = new Characteristic::Saturation(100);          // Default: Full saturation
+            saturation = new Characteristic::Saturation(defaultSat);   // Channel-specific saturation
             brightness = new Characteristic::Brightness(25);           // Default: 25% brightness
 
-            Serial.printf("Channel %d: No saved state, using defaults (H=%d, B=25%%)\n",
-                         channelNum, defaultHue);
+            Serial.printf("Channel %d: No saved state, using defaults (H=%d, S=%d%%, B=25%%)\n",
+                         channelNum, defaultHue, defaultSat);
 
             // Apply the default state to LEDs
-            applyLedState(true, defaultHue, 100, 25);
+            applyLedState(true, defaultHue, defaultSat, 25);
 
             // Save the defaults to NVS
             ChannelStorage::ChannelState defaultState;
             defaultState.power = true;
             defaultState.hue = defaultHue;
-            defaultState.saturation = 100;
+            defaultState.saturation = defaultSat;
             defaultState.brightness = 25;
             storage.save(defaultState);
         }
@@ -164,5 +176,11 @@ struct DEV_LedChannel : Service::LightBulb {
     // Check if boot flash is currently active
     bool isBootFlashActive() {
         return bootFlashActive;
+    }
+
+    // Clear this channel's NVS storage (used during factory reset)
+    void clearStorage() {
+        storage.clear();
+        Serial.printf("Channel %d: Storage cleared\n", channelNumber);
     }
 };

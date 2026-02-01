@@ -38,6 +38,9 @@ bool buttonLastState = HIGH;  // GPIO39 is pulled high, LOW when pressed
 bool buttonReleasedDuringAnimation = false;  // Track if button was released during 3x sequence
 uint8_t currentDisplayMode = 0;  // For display mode cycling
 
+// Forward declaration
+void blankAllLEDs();
+
 // Handle short press (display mode cycling)
 void handleShortPress() {
     currentDisplayMode = (currentDisplayMode + 1) % 4;  // Cycle through 4 modes
@@ -48,7 +51,19 @@ void handleShortPress() {
 // Handle factory reset trigger
 void handleFactoryReset() {
     Serial.println("FACTORY RESET TRIGGERED!");
-    Serial.println("Erasing NVS and rebooting...");
+
+    // Clear all channel storage (colors, brightness, power state)
+    Serial.println("Clearing channel state...");
+    if (channel1Service) channel1Service->clearStorage();
+    if (channel2Service) channel2Service->clearStorage();
+    if (channel3Service) channel3Service->clearStorage();
+    if (channel4Service) channel4Service->clearStorage();
+
+    // Blank all LEDs for visual feedback
+    blankAllLEDs();
+    FastLED.show();
+
+    Serial.println("Erasing HomeKit pairings and rebooting...");
 
     // Perform factory reset using HomeSpan command
     homeSpan.processSerialCommand("F");

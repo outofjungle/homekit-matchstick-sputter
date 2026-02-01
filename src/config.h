@@ -23,6 +23,12 @@ constexpr uint8_t NUM_LEDS_PER_CHANNEL = 200;  // 200 LEDs per channel
 constexpr unsigned long BLINK_INTERVAL_MS = 500;  // 500ms on, 500ms off = 1Hz blink
 constexpr unsigned long DEBOUNCE_MS = 50;        // Button debounce time
 
+// Factory Reset Configuration
+constexpr unsigned long FACTORY_RESET_WARNING_MS = 5000;   // 5 seconds - trigger warning animation (3x cycles)
+constexpr unsigned long FACTORY_RESET_CONFIRM_MS = 3000;   // 3 seconds - green confirmation display (cancel)
+// Note: Animation duration is 3 cycles × 8 LEDs × 300ms = ~7.2 seconds
+// Total time if held: 5s (hold) + 7.2s (animation) = ~12.2s to trigger reset
+
 // HomeSpan Configuration
 constexpr const char* DEVICE_NAME = "Sputter Lights";
 constexpr const char* DEVICE_MANUFACTURER = "0x76656E Labs";

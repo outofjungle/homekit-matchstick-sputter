@@ -12,6 +12,12 @@ CRGB ledChannel2[NUM_LEDS_PER_CHANNEL];        // WS2811 on GPIO 18
 CRGB ledChannel3[NUM_LEDS_PER_CHANNEL];        // WS2811 on GPIO 25
 CRGB ledChannel4[NUM_LEDS_PER_CHANNEL];        // WS2811 on GPIO 19
 
+// LED Channel service instances (for boot flash handling)
+DEV_LedChannel* channel1Service = nullptr;
+DEV_LedChannel* channel2Service = nullptr;
+DEV_LedChannel* channel3Service = nullptr;
+DEV_LedChannel* channel4Service = nullptr;
+
 // Notification manager for visual feedback
 NotificationManager* notificationMgr = nullptr;
 
@@ -236,28 +242,28 @@ void setup() {
         new Service::AccessoryInformation();
             new Characteristic::Identify();
             new Characteristic::Name("Channel 1");
-        new DEV_LedChannel(ledChannel1, NUM_LEDS_PER_CHANNEL);
+        channel1Service = new DEV_LedChannel(ledChannel1, NUM_LEDS_PER_CHANNEL, 1);
 
     // Create Channel 2 Accessory
     new SpanAccessory();
         new Service::AccessoryInformation();
             new Characteristic::Identify();
             new Characteristic::Name("Channel 2");
-        new DEV_LedChannel(ledChannel2, NUM_LEDS_PER_CHANNEL);
+        channel2Service = new DEV_LedChannel(ledChannel2, NUM_LEDS_PER_CHANNEL, 2);
 
     // Create Channel 3 Accessory
     new SpanAccessory();
         new Service::AccessoryInformation();
             new Characteristic::Identify();
             new Characteristic::Name("Channel 3");
-        new DEV_LedChannel(ledChannel3, NUM_LEDS_PER_CHANNEL);
+        channel3Service = new DEV_LedChannel(ledChannel3, NUM_LEDS_PER_CHANNEL, 3);
 
     // Create Channel 4 Accessory
     new SpanAccessory();
         new Service::AccessoryInformation();
             new Characteristic::Identify();
             new Characteristic::Name("Channel 4");
-        new DEV_LedChannel(ledChannel4, NUM_LEDS_PER_CHANNEL);
+        channel4Service = new DEV_LedChannel(ledChannel4, NUM_LEDS_PER_CHANNEL, 4);
 
     Serial.println("========================================");
     Serial.println("Setup complete!");
@@ -280,6 +286,12 @@ void loop() {
         // Animation completion is now handled in the state machine
         // (checking getCycleCount() in BTN_NOTIFICATION state)
     }
+
+    // Update boot flash state for all channels
+    if (channel1Service) channel1Service->loop();
+    if (channel2Service) channel2Service->loop();
+    if (channel3Service) channel3Service->loop();
+    if (channel4Service) channel4Service->loop();
 
     // Poll HomeSpan for HomeKit events
     homeSpan.poll();

@@ -31,3 +31,6 @@
 
 # Logs
 *.log
+
+# WiFi credentials (temporary, will be removed in Phase 6)
+src/wifi_credentials.h

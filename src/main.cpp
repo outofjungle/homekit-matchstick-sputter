@@ -3,6 +3,7 @@
 #include "HomeSpan.h"
 #include "config.h"
 #include "led_channel.h"
+#include "wifi_credentials.h"
 
 // LED Arrays for all channels
 CRGB ledChannel1[NUM_LEDS_PER_CHANNEL];        // WS2811 on GPIO 26
@@ -37,6 +38,10 @@ void setup() {
     FastLED.show();
 
     Serial.println("FastLED initialized.");
+
+    // Set WiFi credentials before HomeSpan initialization
+    homeSpan.setWifiCredentials(WIFI_SSID, WIFI_PASSWORD);
+    Serial.println("WiFi credentials configured.");
 
     // Initialize HomeSpan
     homeSpan.begin(Category::Bridges, DEVICE_NAME);

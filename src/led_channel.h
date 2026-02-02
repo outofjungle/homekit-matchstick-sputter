@@ -4,6 +4,13 @@
 #include <FastLED.h>
 #include "channel_storage.h"
 
+// LED Channel State Machine
+enum class ChannelState {
+    NORMAL,         // Normal HomeKit-controlled operation
+    NOTIFICATION,   // Yielded to notification system
+    OFF             // Power is off
+};
+
 // HomeKit LightBulb service for controlling an LED channel
 struct DEV_LedChannel : Service::LightBulb {
     CRGB* leds;                          // Pointer to LED array for this channel
@@ -16,13 +23,18 @@ struct DEV_LedChannel : Service::LightBulb {
     SpanCharacteristic *saturation;      // Saturation (0-100%)
     SpanCharacteristic *brightness;      // Brightness (0-100%)
 
-    // Boot flash state (for 5-second flash when brightness=0)
-    bool bootFlashActive = false;
-    unsigned long bootFlashStartMs = 0;
-    int bootFlashHue = 0;        // Store hue for boot flash display
-    int bootFlashSat = 100;      // Store saturation for boot flash display
-    static constexpr unsigned long BOOT_FLASH_DURATION_MS = 5000;
-    static constexpr int BOOT_FLASH_BRIGHTNESS = 25;  // Visible brightness during flash
+    // FSM state
+    ChannelState currentState = ChannelState::NORMAL;
+    unsigned long stateEnteredMs = 0;
+    static constexpr int MIN_BRIGHTNESS = 80;  // Force 0 to 80%
+
+    // Desired state (what we want to show when not in NOTIFICATION/BOOT_FLASH)
+    struct {
+        bool power;
+        int hue;
+        int saturation;
+        int brightness;
+    } desired;
 
     // Default hue values per channel (Red, Green, Blue, White)
     static int getDefaultHue(int channelNum) {
@@ -58,32 +70,38 @@ struct DEV_LedChannel : Service::LightBulb {
         bool hasStoredState = storage.load(savedState);
 
         if (hasStoredState) {
-            // Restore saved values
+            // Force brightness=0 to MIN_BRIGHTNESS
+            int clampedBrightness = (savedState.brightness == 0) ? MIN_BRIGHTNESS : savedState.brightness;
+
+            // Restore saved values to HomeKit characteristics
             power = new Characteristic::On(savedState.power);
             hue = new Characteristic::Hue(savedState.hue);
             saturation = new Characteristic::Saturation(savedState.saturation);
-            brightness = new Characteristic::Brightness(savedState.brightness);
+            brightness = new Characteristic::Brightness(clampedBrightness);
 
-            Serial.printf("Channel %d: Loaded state from NVS - Power=%s H=%d S=%d%% B=%d%%\n",
+            // Store desired state
+            desired.power = savedState.power;
+            desired.hue = savedState.hue;
+            desired.saturation = savedState.saturation;
+            desired.brightness = clampedBrightness;
+
+            Serial.printf("Channel %d: Loaded state from NVS - Power=%s H=%d S=%d%% B=%d%%",
                          channelNum,
                          savedState.power ? "ON" : "OFF",
                          savedState.hue,
                          savedState.saturation,
-                         savedState.brightness);
-
-            // If brightness is 0, activate boot flash with visible brightness
+                         clampedBrightness);
             if (savedState.brightness == 0) {
-                bootFlashActive = true;
-                bootFlashStartMs = millis();
-                bootFlashHue = savedState.hue;
-                bootFlashSat = savedState.saturation;
-                // Show the color at visible brightness
-                applyLedState(true, savedState.hue, savedState.saturation, BOOT_FLASH_BRIGHTNESS);
-                Serial.printf("Channel %d: Boot flash activated (brightness=0), showing at %d%%\n",
-                             channelNum, BOOT_FLASH_BRIGHTNESS);
+                Serial.printf(" (forced from 0)\n");
             } else {
-                // Apply the saved state normally
-                applyLedState(savedState.power, savedState.hue, savedState.saturation, savedState.brightness);
+                Serial.printf("\n");
+            }
+
+            // Enter appropriate initial state via FSM
+            if (!savedState.power) {
+                enterState(ChannelState::OFF);
+            } else {
+                enterState(ChannelState::NORMAL);
             }
         } else {
             // No saved state - use channel-specific defaults
@@ -92,20 +110,26 @@ struct DEV_LedChannel : Service::LightBulb {
             power = new Characteristic::On(1);                         // Default: On
             hue = new Characteristic::Hue(defaultHue);                 // Channel-specific hue
             saturation = new Characteristic::Saturation(defaultSat);   // Channel-specific saturation
-            brightness = new Characteristic::Brightness(25);           // Default: 25% brightness
+            brightness = new Characteristic::Brightness(MIN_BRIGHTNESS);  // Default: 80% brightness
 
-            Serial.printf("Channel %d: No saved state, using defaults (H=%d, S=%d%%, B=25%%)\n",
-                         channelNum, defaultHue, defaultSat);
+            // Store desired state
+            desired.power = true;
+            desired.hue = defaultHue;
+            desired.saturation = defaultSat;
+            desired.brightness = MIN_BRIGHTNESS;
 
-            // Apply the default state to LEDs
-            applyLedState(true, defaultHue, defaultSat, 25);
+            Serial.printf("Channel %d: No saved state, using defaults (H=%d, S=%d%%, B=%d%%)\n",
+                         channelNum, defaultHue, defaultSat, MIN_BRIGHTNESS);
+
+            // Enter NORMAL state (apply defaults)
+            enterState(ChannelState::NORMAL);
 
             // Save the defaults to NVS
             ChannelStorage::ChannelState defaultState;
             defaultState.power = true;
             defaultState.hue = defaultHue;
             defaultState.saturation = defaultSat;
-            defaultState.brightness = 25;
+            defaultState.brightness = MIN_BRIGHTNESS;
             storage.save(defaultState);
         }
     }
@@ -128,6 +152,53 @@ struct DEV_LedChannel : Service::LightBulb {
         }
     }
 
+    // FSM: Enter a new state
+    void enterState(ChannelState newState) {
+        currentState = newState;
+        stateEnteredMs = millis();
+
+        // Render based on new state
+        switch (newState) {
+            case ChannelState::NORMAL:
+                // Show desired state
+                applyLedState(desired.power, desired.hue, desired.saturation, desired.brightness);
+                break;
+
+            case ChannelState::OFF:
+                // Turn off
+                applyLedState(false, 0, 0, 0);
+                break;
+
+            case ChannelState::NOTIFICATION:
+                // Notification system will handle rendering
+                break;
+        }
+    }
+
+    // FSM: Time-based state transitions
+    void updateFSM() {
+        // No time-based transitions needed (BOOT_FLASH removed)
+    }
+
+    // FSM: Yield control to notification system
+    void yieldToNotification() {
+        if (currentState != ChannelState::NOTIFICATION) {
+            enterState(ChannelState::NOTIFICATION);
+        }
+    }
+
+    // FSM: Resume from notification
+    void resumeFromNotification() {
+        if (currentState == ChannelState::NOTIFICATION) {
+            // Return to appropriate state based on desired values
+            if (!desired.power) {
+                enterState(ChannelState::OFF);
+            } else {
+                enterState(ChannelState::NORMAL);
+            }
+        }
+    }
+
     // Update handler - called when HomeKit sends new values
     boolean update() override {
         bool powerOn = power->getNewVal();
@@ -135,13 +206,22 @@ struct DEV_LedChannel : Service::LightBulb {
         int s = saturation->getNewVal();
         int v = brightness->getNewVal();
 
-        // Apply the LED state
-        applyLedState(powerOn, h, s, v);
+        // Force brightness=0 to MIN_BRIGHTNESS
+        int clampedBrightness = (v == 0) ? MIN_BRIGHTNESS : v;
+
+        // Update desired state
+        desired.power = powerOn;
+        desired.hue = h;
+        desired.saturation = s;
+        desired.brightness = clampedBrightness;
 
         // Debug output
         if (powerOn) {
-            Serial.printf("Channel %d updated: H=%d S=%d%% V=%d%% (Power: ON)\n",
-                         channelNumber, h, s, v);
+            Serial.printf("Channel %d updated: H=%d S=%d%% V=%d%%", channelNumber, h, s, clampedBrightness);
+            if (v == 0) {
+                Serial.printf(" (forced from 0)");
+            }
+            Serial.printf(" (Power: ON)\n");
         } else {
             Serial.printf("Channel %d updated: Power OFF\n", channelNumber);
         }
@@ -151,31 +231,19 @@ struct DEV_LedChannel : Service::LightBulb {
         state.power = powerOn;
         state.hue = h;
         state.saturation = s;
-        state.brightness = v;
+        state.brightness = clampedBrightness;
         storage.save(state);
 
-        // Cancel boot flash if active (user has changed the state)
-        bootFlashActive = false;
-
-        return true;  // Return true to indicate successful update
-    }
-
-    // Call this in loop() to handle boot flash timeout
-    void loop() {
-        if (bootFlashActive) {
-            unsigned long elapsed = millis() - bootFlashStartMs;
-            if (elapsed >= BOOT_FLASH_DURATION_MS) {
-                // Flash duration expired - turn off LEDs (restore brightness=0 state)
-                Serial.printf("Channel %d: Boot flash expired, turning off\n", channelNumber);
-                fill_solid(leds, numLeds, CRGB::Black);
-                bootFlashActive = false;
+        // Transition to appropriate state
+        if (currentState == ChannelState::NORMAL || currentState == ChannelState::OFF) {
+            if (!powerOn) {
+                enterState(ChannelState::OFF);
+            } else {
+                enterState(ChannelState::NORMAL);
             }
         }
-    }
 
-    // Check if boot flash is currently active
-    bool isBootFlashActive() {
-        return bootFlashActive;
+        return true;  // Return true to indicate successful update
     }
 
     // Clear this channel's NVS storage (used during factory reset)

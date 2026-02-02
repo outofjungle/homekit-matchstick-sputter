@@ -280,6 +280,12 @@ void setup() {
             new Characteristic::Name("Channel 4");
         channel4Service = new DEV_LedChannel(ledChannel4, NUM_LEDS_PER_CHANNEL, 4);
 
+    // Configure notification manager with channel services
+    notificationMgr->setChannelServices(channel1Service, channel2Service, channel3Service, channel4Service);
+
+    // Display boot flash colors for channels with brightness=0
+    FastLED.show();
+
     Serial.println("========================================");
     Serial.println("Setup complete!");
     Serial.println("Press 'W' in serial monitor to configure WiFi");
@@ -302,11 +308,11 @@ void loop() {
         // (checking getCycleCount() in BTN_NOTIFICATION state)
     }
 
-    // Update boot flash state for all channels
-    if (channel1Service) channel1Service->loop();
-    if (channel2Service) channel2Service->loop();
-    if (channel3Service) channel3Service->loop();
-    if (channel4Service) channel4Service->loop();
+    // Update FSM state for all channels (handles boot flash timeout)
+    if (channel1Service) channel1Service->updateFSM();
+    if (channel2Service) channel2Service->updateFSM();
+    if (channel3Service) channel3Service->updateFSM();
+    if (channel4Service) channel4Service->updateFSM();
 
     // Poll HomeSpan for HomeKit events
     homeSpan.poll();

@@ -3,6 +3,9 @@
 #include <Arduino.h>
 #include <FastLED.h>
 
+// Forward declaration
+struct DEV_LedChannel;
+
 // Notification pattern types
 enum NotificationPattern {
     PATTERN_NONE,           // No pattern (restore previous state)
@@ -185,9 +188,25 @@ private:
 class NotificationManager {
 public:
     NotificationManager(CRGB* ch1, CRGB* ch2, CRGB* ch3, CRGB* ch4) :
-        channel1(ch1), channel2(ch2), channel3(ch3), channel4(ch4) {}
+        channel1(ch1), channel2(ch2), channel3(ch3), channel4(ch4),
+        channelService1(nullptr), channelService2(nullptr),
+        channelService3(nullptr), channelService4(nullptr) {}
+
+    // Set channel service pointers (call after channel services are created)
+    void setChannelServices(DEV_LedChannel* ch1, DEV_LedChannel* ch2, DEV_LedChannel* ch3, DEV_LedChannel* ch4) {
+        channelService1 = ch1;
+        channelService2 = ch2;
+        channelService3 = ch3;
+        channelService4 = ch4;
+    }
 
     void start(NotificationPattern pattern, CRGB color, uint16_t stepDuration = 100, uint8_t cycles = 0) {
+        // Tell all channel services to yield to notification
+        if (channelService1) channelService1->yieldToNotification();
+        if (channelService2) channelService2->yieldToNotification();
+        if (channelService3) channelService3->yieldToNotification();
+        if (channelService4) channelService4->yieldToNotification();
+
         // Save current state
         for (int i = 0; i < 8; i++) {
             state.savedCh1[i] = channel1[i];
@@ -208,6 +227,12 @@ public:
                 channel4[i] = state.savedCh4[i];
             }
             state.stop();
+
+            // Tell all channel services to resume from notification
+            if (channelService1) channelService1->resumeFromNotification();
+            if (channelService2) channelService2->resumeFromNotification();
+            if (channelService3) channelService3->resumeFromNotification();
+            if (channelService4) channelService4->resumeFromNotification();
         }
     }
 
@@ -231,4 +256,8 @@ private:
     CRGB* channel2;
     CRGB* channel3;
     CRGB* channel4;
+    DEV_LedChannel* channelService1;
+    DEV_LedChannel* channelService2;
+    DEV_LedChannel* channelService3;
+    DEV_LedChannel* channelService4;
 };

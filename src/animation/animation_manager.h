@@ -7,7 +7,6 @@
 #include "complementary_twinkle.h"
 #include "split_complementary_twinkle.h"
 #include "triadic_twinkle.h"
-#include "tetradic_twinkle.h"
 #include "square_twinkle.h"
 #include "../led_channel.h"
 
@@ -19,7 +18,6 @@ enum AnimationMode {
     ANIM_COMPLEMENTARY,         // Complementary twinkle (2 colors)
     ANIM_SPLIT_COMPLEMENTARY,   // Split-complementary twinkle (3 colors)
     ANIM_TRIADIC,               // Triadic twinkle (3 colors)
-    ANIM_TETRADIC,              // Tetradic twinkle (4 colors)
     ANIM_SQUARE,                // Square twinkle (4 colors)
     ANIM_COUNT                  // Total number of modes (for cycling)
 };
@@ -116,10 +114,6 @@ public:
                 needsRender = triadicAnim.update(deltaMs);
                 break;
 
-            case ANIM_TETRADIC:
-                needsRender = tetradicAnim.update(deltaMs);
-                break;
-
             case ANIM_SQUARE:
                 needsRender = squareAnim.update(deltaMs);
                 break;
@@ -175,7 +169,6 @@ private:
     ComplementaryTwinkle complementaryAnim;
     SplitComplementaryTwinkle splitComplementaryAnim;
     TriadicTwinkle triadicAnim;
-    TetradicTwinkle tetradicAnim;
     SquareTwinkle squareAnim;
 
     // Storage for saved LED state (when entering animation mode)
@@ -266,19 +259,6 @@ private:
                 triadicAnim.begin();
                 break;
 
-            case ANIM_TETRADIC:
-                // Set channel hues from HomeKit state
-                if (channelService1 && channelService2 && channelService3 && channelService4) {
-                    tetradicAnim.setChannelHues(
-                        channelService1->desired.hue,
-                        channelService2->desired.hue,
-                        channelService3->desired.hue,
-                        channelService4->desired.hue
-                    );
-                }
-                tetradicAnim.begin();
-                break;
-
             case ANIM_SQUARE:
                 // Set channel hues from HomeKit state
                 if (channelService1 && channelService2 && channelService3 && channelService4) {
@@ -339,9 +319,6 @@ private:
                 case ANIM_TRIADIC:
                     triadicAnim.setChannelHues(h1, h2, h3, h4);
                     break;
-                case ANIM_TETRADIC:
-                    tetradicAnim.setChannelHues(h1, h2, h3, h4);
-                    break;
                 case ANIM_SQUARE:
                     squareAnim.setChannelHues(h1, h2, h3, h4);
                     break;
@@ -370,10 +347,6 @@ private:
 
             case ANIM_TRIADIC:
                 triadicAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
-                break;
-
-            case ANIM_TETRADIC:
-                tetradicAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
                 break;
 
             case ANIM_SQUARE:
@@ -407,7 +380,6 @@ private:
             case ANIM_COMPLEMENTARY: return "Complementary Twinkle";
             case ANIM_SPLIT_COMPLEMENTARY: return "Split-Complementary Twinkle";
             case ANIM_TRIADIC: return "Triadic Twinkle";
-            case ANIM_TETRADIC: return "Tetradic Twinkle";
             case ANIM_SQUARE: return "Square Twinkle";
             default: return "Unknown";
         }

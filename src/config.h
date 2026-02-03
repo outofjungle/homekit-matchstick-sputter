@@ -14,7 +14,8 @@ constexpr uint8_t PIN_LED_CH3 = 19;        // LED Strip Channel 3 Data
 constexpr uint8_t PIN_LED_CH4 = 25;        // LED Strip Channel 4 Data
 
 // Button Input
-constexpr uint8_t PIN_BUTTON = 39;         // Button input (GPIO39 - input only)
+constexpr uint8_t PIN_BUTTON = 39;         // Button input (GPIO39 - input only) - Factory reset
+constexpr uint8_t PIN_BUTTON_ANIM = 0;     // Button input (GPIO0) - Animation cycling
 
 // LED Configuration
 constexpr uint8_t NUM_LEDS_PER_CHANNEL = 200;  // 200 LEDs per channel

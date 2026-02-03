@@ -5,6 +5,7 @@
 #include "led_channel.h"
 #include "wifi_credentials.h"
 #include "notification_pattern.h"
+#include "animation/animation_manager.h"
 
 // LED Arrays for all channels
 CRGB ledChannel1[NUM_LEDS_PER_CHANNEL];        // WS2811 on GPIO 26
@@ -20,6 +21,9 @@ DEV_LedChannel* channel4Service = nullptr;
 
 // Notification manager for visual feedback
 NotificationManager* notificationMgr = nullptr;
+
+// Animation manager for ambient animations
+AnimationManager* animationMgr = nullptr;
 
 // Button state machine for factory reset
 enum ButtonState {
@@ -38,8 +42,12 @@ bool buttonLastState = HIGH;  // GPIO39 is pulled high, LOW when pressed
 bool buttonReleasedDuringAnimation = false;  // Track if button was released during 3x sequence
 uint8_t currentDisplayMode = 0;  // For display mode cycling
 
+// Animation button state (GPIO0)
+bool animButtonLastState = HIGH;  // GPIO0 is pulled high, LOW when pressed
+
 // Forward declaration
 void blankAllLEDs();
+void updateAnimationButton();
 
 // Handle short press (display mode cycling)
 void handleShortPress() {
@@ -58,6 +66,9 @@ void handleFactoryReset() {
     if (channel2Service) channel2Service->clearStorage();
     if (channel3Service) channel3Service->clearStorage();
     if (channel4Service) channel4Service->clearStorage();
+
+    // Clear animation mode storage
+    if (animationMgr) animationMgr->clearStorage();
 
     // Blank all LEDs for visual feedback
     blankAllLEDs();
@@ -78,6 +89,32 @@ void blankAllLEDs() {
     fill_solid(ledChannel3, NUM_LEDS_PER_CHANNEL, CRGB::Black);
     fill_solid(ledChannel4, NUM_LEDS_PER_CHANNEL, CRGB::Black);
     FastLED.show();
+}
+
+// Update animation button (GPIO0)
+void updateAnimationButton() {
+    bool currentButtonState = digitalRead(PIN_BUTTON_ANIM);
+    unsigned long now = millis();
+
+    // Debounce
+    static unsigned long lastDebounceTime = 0;
+    if ((now - lastDebounceTime) < DEBOUNCE_MS) {
+        return;
+    }
+
+    // Detect button press edge (only on press, not release)
+    bool buttonPressed = (currentButtonState == LOW);
+    bool buttonJustPressed = (buttonPressed && animButtonLastState == HIGH);
+
+    if (buttonJustPressed) {
+        lastDebounceTime = now;
+        // Cycle animation mode
+        if (animationMgr) {
+            animationMgr->cycleMode();
+        }
+    }
+
+    animButtonLastState = currentButtonState;
 }
 
 // Update button state machine
@@ -223,9 +260,15 @@ void setup() {
     notificationMgr = new NotificationManager(ledChannel1, ledChannel2, ledChannel3, ledChannel4);
     Serial.println("Notification manager initialized.");
 
-    // Initialize button pin
+    // Initialize animation manager
+    animationMgr = new AnimationManager(ledChannel1, ledChannel2, ledChannel3, ledChannel4, NUM_LEDS_PER_CHANNEL);
+    Serial.println("Animation manager initialized.");
+
+    // Initialize button pins
     pinMode(PIN_BUTTON, INPUT_PULLUP);
-    Serial.println("Button pin configured (GPIO39).");
+    Serial.println("Button pin configured (GPIO39 - factory reset).");
+    pinMode(PIN_BUTTON_ANIM, INPUT_PULLUP);
+    Serial.println("Button pin configured (GPIO0 - animation cycle).");
 
     // Initialize status LED pin
     pinMode(PIN_STATUS_LED, OUTPUT);
@@ -283,6 +326,9 @@ void setup() {
     // Configure notification manager with channel services
     notificationMgr->setChannelServices(channel1Service, channel2Service, channel3Service, channel4Service);
 
+    // Configure animation manager with channel services
+    animationMgr->setChannelServices(channel1Service, channel2Service, channel3Service, channel4Service);
+
     // Display boot flash colors for channels with brightness=0
     FastLED.show();
 
@@ -298,17 +344,23 @@ void setup() {
 }
 
 void loop() {
-    // Update button state machine for factory reset
-    updateButtonStateMachine();
+    // Update button state machines
+    updateButtonStateMachine();      // GPIO39: Factory reset
+    updateAnimationButton();          // GPIO0: Animation cycling
 
-    // Update notification animations if active
+    // Update notification animations if active (highest priority)
     if (notificationMgr->isActive()) {
         bool stillRunning = notificationMgr->update(NUM_LEDS_PER_CHANNEL);
         // Animation completion is now handled in the state machine
         // (checking getCycleCount() in BTN_NOTIFICATION state)
     }
 
-    // Update FSM state for all channels (handles boot flash timeout)
+    // Update ambient animations if active (only if notifications not active)
+    if (!notificationMgr->isActive() && animationMgr->isActive()) {
+        animationMgr->update();
+    }
+
+    // Update FSM state for all channels
     if (channel1Service) channel1Service->updateFSM();
     if (channel2Service) channel2Service->updateFSM();
     if (channel3Service) channel3Service->updateFSM();

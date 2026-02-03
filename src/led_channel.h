@@ -7,7 +7,8 @@
 // LED Channel State Machine
 enum class ChannelState {
     NORMAL,         // Normal HomeKit-controlled operation
-    NOTIFICATION,   // Yielded to notification system
+    NOTIFICATION,   // Yielded to notification system (highest priority)
+    ANIMATION,      // Ambient animation active
     OFF             // Power is off
 };
 
@@ -36,26 +37,20 @@ struct DEV_LedChannel : Service::LightBulb {
         int brightness;
     } desired;
 
-    // Default hue values per channel (Red, Green, Blue, White)
+    // Default hue values per channel (90° spacing around color wheel)
     static int getDefaultHue(int channelNum) {
         switch (channelNum) {
             case 1: return 0;    // Red
-            case 2: return 120;  // Green
-            case 3: return 240;  // Blue
-            case 4: return 0;    // White (hue doesn't matter when saturation=0)
+            case 2: return 90;   // Yellow/Orange
+            case 3: return 180;  // Cyan
+            case 4: return 270;  // Purple/Magenta
             default: return 0;
         }
     }
 
-    // Default saturation per channel (100% for RGB, 0% for White)
+    // Default saturation per channel (all 100% for vivid colors)
     static int getDefaultSaturation(int channelNum) {
-        switch (channelNum) {
-            case 1: return 100;  // Red - full saturation
-            case 2: return 100;  // Green - full saturation
-            case 3: return 100;  // Blue - full saturation
-            case 4: return 0;    // White - no saturation
-            default: return 100;
-        }
+        return 100;  // Full saturation for all channels
     }
 
     // Constructor - initializes the LightBulb service with HSV characteristics
@@ -172,6 +167,10 @@ struct DEV_LedChannel : Service::LightBulb {
             case ChannelState::NOTIFICATION:
                 // Notification system will handle rendering
                 break;
+
+            case ChannelState::ANIMATION:
+                // Animation system will handle rendering
+                break;
         }
     }
 
@@ -190,6 +189,25 @@ struct DEV_LedChannel : Service::LightBulb {
     // FSM: Resume from notification
     void resumeFromNotification() {
         if (currentState == ChannelState::NOTIFICATION) {
+            // Return to appropriate state based on desired values
+            if (!desired.power) {
+                enterState(ChannelState::OFF);
+            } else {
+                enterState(ChannelState::NORMAL);
+            }
+        }
+    }
+
+    // FSM: Yield control to animation system
+    void yieldToAnimation() {
+        if (currentState != ChannelState::NOTIFICATION && currentState != ChannelState::ANIMATION) {
+            enterState(ChannelState::ANIMATION);
+        }
+    }
+
+    // FSM: Resume from animation
+    void resumeFromAnimation() {
+        if (currentState == ChannelState::ANIMATION) {
             // Return to appropriate state based on desired values
             if (!desired.power) {
                 enterState(ChannelState::OFF);

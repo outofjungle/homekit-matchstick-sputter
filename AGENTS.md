@@ -34,18 +34,19 @@ All LED channel state changes MUST use the FSM (Finite State Machine) defined in
 
 **FSM States:**
 - `NORMAL`: Normal HomeKit-controlled operation
-- `NOTIFICATION`: Yielded to notification system
+- `NOTIFICATION`: Yielded to notification system (highest priority)
+- `ANIMATION`: Ambient animation active
 - `OFF`: Power is off
 
 **State Transitions:**
 - Use `enterState()` to transition states (handles rendering)
 - Use `updateFSM()` for FSM updates (currently no time-based transitions)
-- Use `yieldToNotification()` when notification starts
-- Use `resumeFromNotification()` when notification ends
+- Use `yieldToNotification()` / `resumeFromNotification()` for notifications
+- Use `yieldToAnimation()` / `resumeFromAnimation()` for animations
 
 **Priority System:**
-- NOTIFICATION state has highest priority (notifications override everything)
-- HomeKit updates transition between NORMAL and OFF states
+- NOTIFICATION > ANIMATION > NORMAL/OFF
+- HomeKit power state is respected during animations (OFF channels stay off)
 
 **Brightness Clamping:**
 - Any brightness=0 value is automatically forced to 80% (MIN_BRIGHTNESS)
@@ -66,36 +67,42 @@ make flash-monitor # Flash and start monitoring
 ### Expected Behavior
 
 #### On Startup:
-1. **Channel 0 (SK6812 RGB, GPIO 27)**: Solid red (initial color)
-2. **Channel 1 (WS2811, GPIO 26)**: First pixel blinks red at 1Hz
-3. **Channel 2 (WS2811, GPIO 18)**: First pixel blinks green at 1Hz
-4. **Channel 3 (WS2811, GPIO 25)**: First pixel blinks blue at 1Hz
-5. **Channel 4 (WS2811, GPIO 19)**: First pixel blinks white at 1Hz
-6. **Status LED (GPIO 22)**: Off
+1. **Channel 0 (SK6812 RGB, GPIO 27)**: Status indicator
+2. **Channel 1 (WS2811, GPIO 26)**: Default hue 0° (Red)
+3. **Channel 2 (WS2811, GPIO 18)**: Default hue 90° (Yellow/Orange)
+4. **Channel 3 (WS2811, GPIO 25)**: Default hue 180° (Cyan)
+5. **Channel 4 (WS2811, GPIO 19)**: Default hue 270° (Purple/Magenta)
+6. **Status LED (GPIO 22)**: On when device active
 
-#### Button Control (GPIO39):
-- **Channel 0** cycles through: Red → Green → Blue → White → Red...
-- **Status LED** toggles: Off → On → Off...
-- Serial output shows current state
+#### Default Channel Colors (90° spacing):
+| Channel | Hue | Color |
+|---------|-----|-------|
+| 1 | 0° | Red |
+| 2 | 90° | Yellow/Orange |
+| 3 | 180° | Cyan |
+| 4 | 270° | Purple/Magenta |
 
-### Serial Output Example:
-```
-Channels 1-4: ON (R/G/B/W)
-Channels 1-4: OFF
-Button pressed! Channel 0: Green, Status LED: ON
-Channels 1-4: ON (R/G/B/W)
-Channels 1-4: OFF
-```
+Users can change any channel's color via HomeKit.
+
+#### Button Control:
+- **GPIO39 (long press 5s)**: Factory reset with warning animation
+- **GPIO0 (short press)**: Cycle animations (HomeKit → Fire → Twinkle → HomeKit)
+
+#### Ambient Animations:
+- **Fire**: Heat-based effect using channel's hue (black → hue → white)
+- **Twinkle**: Random sparkles using channel's hue
+- Animations respect HomeKit power state (OFF channels stay off)
 
 ### Hardware Testing Checklist
 
 Before committing and pushing:
-1. ✓ Code compiles without errors
-2. ☐ All 4 external channels blink correctly (R/G/B/W)
-3. ☐ Channel 0 (SK6812) displays initial red color
-4. ☐ Button press cycles channel 0 through colors
-5. ☐ Button press toggles status LED
-6. ☐ Serial output matches expected behavior
+1. ☐ Code compiles without errors
+2. ☐ All 4 channels display default colors (Red, Yellow, Cyan, Purple)
+3. ☐ GPIO0 button cycles through animations (HomeKit → Fire → Twinkle)
+4. ☐ Fire animation uses channel hues (not hardcoded red)
+5. ☐ Twinkle animation sparkles with channel hues
+6. ☐ Turning off a channel in HomeKit blacks it out during animation
+7. ☐ GPIO39 long press triggers factory reset warning
 
 ### Configuration
 

@@ -2,16 +2,17 @@
 
 #include "animation_base.h"
 
-// Twinkle Effect Animation
+// Monochromatic Twinkle Effect Animation
 // Random LEDs fade in and out at different rates, creating a sparkling effect
+// Uses analogous spread (±5° around primary hue) for visual variety
 //
 // Algorithm:
 // 1. Each LED has a target brightness and current brightness
 // 2. Each frame:
 //    - Some LEDs get new random target brightness (twinkle density)
 //    - All LEDs fade toward their target brightness (fade speed)
-// 3. Color based on channel's stored hue (from HomeKit state)
-class TwinkleAnimation : public AnimationBase {
+// 3. Color based on channel's stored hue (from HomeKit state) with analogous spread
+class MonochromaticTwinkle : public AnimationBase {
 public:
     // Tunable parameters
     static constexpr uint8_t TWINKLE_DENSITY = 8;    // 1/density chance per frame per LED (higher = fewer twinkles)
@@ -19,8 +20,9 @@ public:
     static constexpr unsigned long FRAME_MS = 50;    // Frame update interval (50ms = 20fps)
     static constexpr uint8_t BASE_BRIGHTNESS = 20;   // Minimum brightness when "off"
     static constexpr uint8_t MAX_BRIGHTNESS = 255;   // Maximum brightness when fully lit
+    static constexpr int ANGLE_WIDTH = 10;           // Analogous spread range (±5° from target hue)
 
-    TwinkleAnimation() {
+    MonochromaticTwinkle() {
         reset();
     }
 
@@ -68,7 +70,7 @@ public:
     }
 
     const char* getName() const override {
-        return "Twinkle";
+        return "Monochromatic Twinkle";
     }
 
 private:
@@ -107,13 +109,28 @@ private:
         }
     }
 
+    // Generate analogous spread offset using normal distribution approximation
+    // Central Limit Theorem: sum of 6 uniform randoms approximates normal distribution
+    int generateSpread() {
+        int sum = 0;
+        for (int i = 0; i < 6; i++) {
+            sum += random(0, ANGLE_WIDTH + 1);
+        }
+        return (sum / 6) - (ANGLE_WIDTH / 2);  // Centered at 0
+    }
+
     // Render twinkle effect for a single channel
     void renderChannel(CRGB* leds, uint16_t numLeds, uint8_t channelIndex) {
-        // Convert HomeKit hue (0-360) to FastLED hue (0-255)
-        uint8_t hue8 = map(channelHue[channelIndex], 0, 360, 0, 255);
+        // Convert HomeKit hue (0-360) to base hue
+        int baseHue360 = channelHue[channelIndex];
 
         for (int i = 0; i < numLeds; i++) {
-            // Use channel's hue, full saturation, variable brightness
+            // Apply analogous spread to each LED
+            int spread = generateSpread();
+            int finalHue360 = (baseHue360 + spread + 360) % 360;
+            uint8_t hue8 = map(finalHue360, 0, 360, 0, 255);
+
+            // Use channel's hue with spread, full saturation, variable brightness
             leds[i] = CHSV(hue8, 255, currentBrightness[channelIndex][i]);
         }
     }

@@ -4,14 +4,24 @@
 #include "animation_base.h"
 #include "fire.h"
 #include "twinkle.h"
+#include "complementary_twinkle.h"
+#include "split_complementary_twinkle.h"
+#include "triadic_twinkle.h"
+#include "tetradic_twinkle.h"
+#include "square_twinkle.h"
 #include "../led_channel.h"
 
 // Animation modes
 enum AnimationMode {
-    ANIM_NONE,      // HomeKit control (normal operation)
-    ANIM_FIRE,      // Fire effect
-    ANIM_TWINKLE,   // Twinkle effect
-    ANIM_COUNT      // Total number of modes (for cycling)
+    ANIM_NONE,                  // HomeKit control (normal operation)
+    ANIM_FIRE,                  // Fire effect
+    ANIM_MONOCHROMATIC,         // Monochromatic twinkle (was ANIM_TWINKLE)
+    ANIM_COMPLEMENTARY,         // Complementary twinkle (2 colors)
+    ANIM_SPLIT_COMPLEMENTARY,   // Split-complementary twinkle (3 colors)
+    ANIM_TRIADIC,               // Triadic twinkle (3 colors)
+    ANIM_TETRADIC,              // Tetradic twinkle (4 colors)
+    ANIM_SQUARE,                // Square twinkle (4 colors)
+    ANIM_COUNT                  // Total number of modes (for cycling)
 };
 
 // Animation Manager
@@ -90,8 +100,28 @@ public:
                 needsRender = fireAnim.update(deltaMs);
                 break;
 
-            case ANIM_TWINKLE:
-                needsRender = twinkleAnim.update(deltaMs);
+            case ANIM_MONOCHROMATIC:
+                needsRender = monochromaticAnim.update(deltaMs);
+                break;
+
+            case ANIM_COMPLEMENTARY:
+                needsRender = complementaryAnim.update(deltaMs);
+                break;
+
+            case ANIM_SPLIT_COMPLEMENTARY:
+                needsRender = splitComplementaryAnim.update(deltaMs);
+                break;
+
+            case ANIM_TRIADIC:
+                needsRender = triadicAnim.update(deltaMs);
+                break;
+
+            case ANIM_TETRADIC:
+                needsRender = tetradicAnim.update(deltaMs);
+                break;
+
+            case ANIM_SQUARE:
+                needsRender = squareAnim.update(deltaMs);
                 break;
 
             default:
@@ -141,7 +171,12 @@ private:
 
     // Animation instances
     FireAnimation fireAnim;
-    TwinkleAnimation twinkleAnim;
+    MonochromaticTwinkle monochromaticAnim;
+    ComplementaryTwinkle complementaryAnim;
+    SplitComplementaryTwinkle splitComplementaryAnim;
+    TriadicTwinkle triadicAnim;
+    TetradicTwinkle tetradicAnim;
+    SquareTwinkle squareAnim;
 
     // Storage for saved LED state (when entering animation mode)
     CRGB savedCh1[200];
@@ -179,17 +214,82 @@ private:
                 fireAnim.begin();
                 break;
 
-            case ANIM_TWINKLE:
+            case ANIM_MONOCHROMATIC:
                 // Set channel hues from HomeKit state
                 if (channelService1 && channelService2 && channelService3 && channelService4) {
-                    twinkleAnim.setChannelHues(
+                    monochromaticAnim.setChannelHues(
                         channelService1->desired.hue,
                         channelService2->desired.hue,
                         channelService3->desired.hue,
                         channelService4->desired.hue
                     );
                 }
-                twinkleAnim.begin();
+                monochromaticAnim.begin();
+                break;
+
+            case ANIM_COMPLEMENTARY:
+                // Set channel hues from HomeKit state
+                if (channelService1 && channelService2 && channelService3 && channelService4) {
+                    complementaryAnim.setChannelHues(
+                        channelService1->desired.hue,
+                        channelService2->desired.hue,
+                        channelService3->desired.hue,
+                        channelService4->desired.hue
+                    );
+                }
+                complementaryAnim.begin();
+                break;
+
+            case ANIM_SPLIT_COMPLEMENTARY:
+                // Set channel hues from HomeKit state
+                if (channelService1 && channelService2 && channelService3 && channelService4) {
+                    splitComplementaryAnim.setChannelHues(
+                        channelService1->desired.hue,
+                        channelService2->desired.hue,
+                        channelService3->desired.hue,
+                        channelService4->desired.hue
+                    );
+                }
+                splitComplementaryAnim.begin();
+                break;
+
+            case ANIM_TRIADIC:
+                // Set channel hues from HomeKit state
+                if (channelService1 && channelService2 && channelService3 && channelService4) {
+                    triadicAnim.setChannelHues(
+                        channelService1->desired.hue,
+                        channelService2->desired.hue,
+                        channelService3->desired.hue,
+                        channelService4->desired.hue
+                    );
+                }
+                triadicAnim.begin();
+                break;
+
+            case ANIM_TETRADIC:
+                // Set channel hues from HomeKit state
+                if (channelService1 && channelService2 && channelService3 && channelService4) {
+                    tetradicAnim.setChannelHues(
+                        channelService1->desired.hue,
+                        channelService2->desired.hue,
+                        channelService3->desired.hue,
+                        channelService4->desired.hue
+                    );
+                }
+                tetradicAnim.begin();
+                break;
+
+            case ANIM_SQUARE:
+                // Set channel hues from HomeKit state
+                if (channelService1 && channelService2 && channelService3 && channelService4) {
+                    squareAnim.setChannelHues(
+                        channelService1->desired.hue,
+                        channelService2->desired.hue,
+                        channelService3->desired.hue,
+                        channelService4->desired.hue
+                    );
+                }
+                squareAnim.begin();
                 break;
 
             default:
@@ -216,14 +316,68 @@ private:
     }
 
     void renderCurrentAnimation() {
+        // Update animation hues from current HomeKit state (allows real-time color changes)
+        if (channelService1 && channelService2 && channelService3 && channelService4) {
+            int h1 = channelService1->desired.hue;
+            int h2 = channelService2->desired.hue;
+            int h3 = channelService3->desired.hue;
+            int h4 = channelService4->desired.hue;
+
+            switch (currentMode) {
+                case ANIM_FIRE:
+                    fireAnim.setChannelHues(h1, h2, h3, h4);
+                    break;
+                case ANIM_MONOCHROMATIC:
+                    monochromaticAnim.setChannelHues(h1, h2, h3, h4);
+                    break;
+                case ANIM_COMPLEMENTARY:
+                    complementaryAnim.setChannelHues(h1, h2, h3, h4);
+                    break;
+                case ANIM_SPLIT_COMPLEMENTARY:
+                    splitComplementaryAnim.setChannelHues(h1, h2, h3, h4);
+                    break;
+                case ANIM_TRIADIC:
+                    triadicAnim.setChannelHues(h1, h2, h3, h4);
+                    break;
+                case ANIM_TETRADIC:
+                    tetradicAnim.setChannelHues(h1, h2, h3, h4);
+                    break;
+                case ANIM_SQUARE:
+                    squareAnim.setChannelHues(h1, h2, h3, h4);
+                    break;
+                default:
+                    break;
+            }
+        }
+
         // Render animation
         switch (currentMode) {
             case ANIM_FIRE:
                 fireAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
                 break;
 
-            case ANIM_TWINKLE:
-                twinkleAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
+            case ANIM_MONOCHROMATIC:
+                monochromaticAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
+                break;
+
+            case ANIM_COMPLEMENTARY:
+                complementaryAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
+                break;
+
+            case ANIM_SPLIT_COMPLEMENTARY:
+                splitComplementaryAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
+                break;
+
+            case ANIM_TRIADIC:
+                triadicAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
+                break;
+
+            case ANIM_TETRADIC:
+                tetradicAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
+                break;
+
+            case ANIM_SQUARE:
+                squareAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
                 break;
 
             default:
@@ -249,7 +403,12 @@ private:
         switch (mode) {
             case ANIM_NONE: return "HomeKit";
             case ANIM_FIRE: return "Fire";
-            case ANIM_TWINKLE: return "Twinkle";
+            case ANIM_MONOCHROMATIC: return "Monochromatic Twinkle";
+            case ANIM_COMPLEMENTARY: return "Complementary Twinkle";
+            case ANIM_SPLIT_COMPLEMENTARY: return "Split-Complementary Twinkle";
+            case ANIM_TRIADIC: return "Triadic Twinkle";
+            case ANIM_TETRADIC: return "Tetradic Twinkle";
+            case ANIM_SQUARE: return "Square Twinkle";
             default: return "Unknown";
         }
     }

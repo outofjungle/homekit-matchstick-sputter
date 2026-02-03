@@ -296,12 +296,17 @@ private:
     }
 
     void renderCurrentAnimation() {
-        // Update animation hues from current HomeKit state (allows real-time color changes)
+        // Update animation hues and brightnesses from current HomeKit state (allows real-time changes)
         if (channelService1 && channelService2 && channelService3 && channelService4) {
             int h1 = channelService1->desired.hue;
             int h2 = channelService2->desired.hue;
             int h3 = channelService3->desired.hue;
             int h4 = channelService4->desired.hue;
+
+            int b1 = channelService1->desired.brightness;
+            int b2 = channelService2->desired.brightness;
+            int b3 = channelService3->desired.brightness;
+            int b4 = channelService4->desired.brightness;
 
             switch (currentMode) {
                 case ANIM_FIRE:
@@ -312,15 +317,19 @@ private:
                     break;
                 case ANIM_COMPLEMENTARY:
                     complementaryAnim.setChannelHues(h1, h2, h3, h4);
+                    complementaryAnim.setChannelBrightnesses(b1, b2, b3, b4);
                     break;
                 case ANIM_SPLIT_COMPLEMENTARY:
                     splitComplementaryAnim.setChannelHues(h1, h2, h3, h4);
+                    splitComplementaryAnim.setChannelBrightnesses(b1, b2, b3, b4);
                     break;
                 case ANIM_TRIADIC:
                     triadicAnim.setChannelHues(h1, h2, h3, h4);
+                    triadicAnim.setChannelBrightnesses(b1, b2, b3, b4);
                     break;
                 case ANIM_SQUARE:
                     squareAnim.setChannelHues(h1, h2, h3, h4);
+                    squareAnim.setChannelBrightnesses(b1, b2, b3, b4);
                     break;
                 default:
                     break;

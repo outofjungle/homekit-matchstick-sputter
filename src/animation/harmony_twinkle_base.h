@@ -117,7 +117,7 @@ protected:
     }
 
     // Assign LED hues based on harmony and brightness-based distribution
-    // Primary hue gets 20-80% of LEDs (80% at brightness=100)
+    // Primary hue gets 5-95% of LEDs (95% at brightness=100)
     // Remaining LEDs divided among secondary hues
     // LEDs are shuffled to randomize positions
     void assignLedHues(uint8_t channelIndex, int brightness) {
@@ -125,8 +125,8 @@ protected:
         int numHues = getNumHarmonyHues();
         int primaryHue360 = channelHue[channelIndex];
 
-        // 1. Calculate primary count from brightness (20% at 0, 80% at 100)
-        float primaryPercent = 0.20f + (brightness / 100.0f) * 0.60f;
+        // 1. Calculate primary count from brightness (5% at 0, 95% at 100)
+        float primaryPercent = 0.05f + (brightness / 100.0f) * 0.90f;
         int primaryCount = (int)(MAX_LEDS * primaryPercent);
 
         // 2. Divide remaining LEDs among secondary hues

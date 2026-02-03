@@ -65,32 +65,31 @@ struct DEV_LedChannel : Service::LightBulb {
         bool hasStoredState = storage.load(savedState);
 
         if (hasStoredState) {
-            // Force brightness=0 to MIN_BRIGHTNESS
-            int clampedBrightness = (savedState.brightness == 0) ? MIN_BRIGHTNESS : savedState.brightness;
+            // PRODUCT REQUIREMENT: Correct brightness=0 to MIN_BRIGHTNESS in NVS immediately
+            if (savedState.brightness == 0) {
+                Serial.printf("Channel %d: Correcting brightness=0 to %d%% in NVS\n", channelNum, MIN_BRIGHTNESS);
+                savedState.brightness = MIN_BRIGHTNESS;
+                storage.save(savedState);  // Save corrected value immediately
+            }
 
             // Restore saved values to HomeKit characteristics
             power = new Characteristic::On(savedState.power);
             hue = new Characteristic::Hue(savedState.hue);
             saturation = new Characteristic::Saturation(savedState.saturation);
-            brightness = new Characteristic::Brightness(clampedBrightness);
+            brightness = new Characteristic::Brightness(savedState.brightness);
 
             // Store desired state
             desired.power = savedState.power;
             desired.hue = savedState.hue;
             desired.saturation = savedState.saturation;
-            desired.brightness = clampedBrightness;
+            desired.brightness = savedState.brightness;
 
-            Serial.printf("Channel %d: Loaded state from NVS - Power=%s H=%d S=%d%% B=%d%%",
+            Serial.printf("Channel %d: Loaded state from NVS - Power=%s H=%d S=%d%% B=%d%%\n",
                          channelNum,
                          savedState.power ? "ON" : "OFF",
                          savedState.hue,
                          savedState.saturation,
-                         clampedBrightness);
-            if (savedState.brightness == 0) {
-                Serial.printf(" (forced from 0)\n");
-            } else {
-                Serial.printf("\n");
-            }
+                         savedState.brightness);
 
             // Enter appropriate initial state via FSM
             if (!savedState.power) {

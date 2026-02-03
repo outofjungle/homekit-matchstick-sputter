@@ -11,8 +11,8 @@
 class HarmonyTwinkleBase : public AnimationBase {
 public:
     // Tunable parameters (shared across all harmony animations)
-    static constexpr uint8_t TWINKLE_DENSITY = 8;    // 1/density chance per frame per LED (higher = fewer twinkles)
-    static constexpr uint8_t FADE_SPEED = 15;        // How fast LEDs fade to target (0-255, higher = faster)
+    static constexpr uint8_t TWINKLE_DENSITY = 16;   // 1/density chance per frame per LED (higher = fewer twinkles, gentler)
+    static constexpr uint8_t FADE_SPEED = 8;         // How fast LEDs fade to target (0-255, higher = faster, slower)
     static constexpr unsigned long FRAME_MS = 50;    // Frame update interval (50ms = 20fps)
     static constexpr uint8_t BASE_BRIGHTNESS = 20;   // Minimum brightness when "off"
     static constexpr uint8_t MAX_BRIGHTNESS = 255;   // Maximum brightness when fully lit

@@ -3,7 +3,7 @@
 #include <Preferences.h>
 #include "animation_base.h"
 #include "fire.h"
-#include "twinkle.h"
+#include "monochromatic_twinkle.h"
 #include "complementary_twinkle.h"
 #include "split_complementary_twinkle.h"
 #include "triadic_twinkle.h"

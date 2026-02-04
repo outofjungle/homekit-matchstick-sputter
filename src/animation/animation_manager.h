@@ -2,7 +2,11 @@
 
 #include <Preferences.h>
 #include "animation_base.h"
-#include "fire.h"
+#include "monochromatic_runner.h"
+#include "complementary_runner.h"
+#include "split_complementary_runner.h"
+#include "triadic_runner.h"
+#include "square_runner.h"
 #include "monochromatic_twinkle.h"
 #include "complementary_twinkle.h"
 #include "split_complementary_twinkle.h"
@@ -13,7 +17,11 @@
 // Animation modes
 enum AnimationMode {
     ANIM_NONE,                  // HomeKit control (normal operation)
-    ANIM_FIRE,                  // Fire effect
+    ANIM_MONOCHROMATIC_RUNNER,  // Monochromatic runner (black/white)
+    ANIM_COMPLEMENTARY_RUNNER,  // Complementary runner (2 colors)
+    ANIM_SPLIT_COMPLEMENTARY_RUNNER, // Split-complementary runner (3 colors)
+    ANIM_TRIADIC_RUNNER,        // Triadic runner (3 colors)
+    ANIM_SQUARE_RUNNER,         // Square runner (4 colors)
     ANIM_MONOCHROMATIC,         // Monochromatic twinkle (was ANIM_TWINKLE)
     ANIM_COMPLEMENTARY,         // Complementary twinkle (2 colors)
     ANIM_SPLIT_COMPLEMENTARY,   // Split-complementary twinkle (3 colors)
@@ -94,8 +102,24 @@ public:
 
         // Update current animation
         switch (currentMode) {
-            case ANIM_FIRE:
-                needsRender = fireAnim.update(deltaMs);
+            case ANIM_MONOCHROMATIC_RUNNER:
+                needsRender = monochromaticRunnerAnim.update(deltaMs);
+                break;
+
+            case ANIM_COMPLEMENTARY_RUNNER:
+                needsRender = complementaryRunnerAnim.update(deltaMs);
+                break;
+
+            case ANIM_SPLIT_COMPLEMENTARY_RUNNER:
+                needsRender = splitComplementaryRunnerAnim.update(deltaMs);
+                break;
+
+            case ANIM_TRIADIC_RUNNER:
+                needsRender = triadicRunnerAnim.update(deltaMs);
+                break;
+
+            case ANIM_SQUARE_RUNNER:
+                needsRender = squareRunnerAnim.update(deltaMs);
                 break;
 
             case ANIM_MONOCHROMATIC:
@@ -164,7 +188,11 @@ private:
     unsigned long lastUpdateMs;
 
     // Animation instances
-    FireAnimation fireAnim;
+    MonochromaticRunner monochromaticRunnerAnim;
+    ComplementaryRunner complementaryRunnerAnim;
+    SplitComplementaryRunner splitComplementaryRunnerAnim;
+    TriadicRunner triadicRunnerAnim;
+    SquareRunner squareRunnerAnim;
     MonochromaticTwinkle monochromaticAnim;
     ComplementaryTwinkle complementaryAnim;
     SplitComplementaryTwinkle splitComplementaryAnim;
@@ -194,17 +222,99 @@ private:
 
         // Initialize animation
         switch (currentMode) {
-            case ANIM_FIRE:
-                // Set channel hues from HomeKit state
+            case ANIM_MONOCHROMATIC_RUNNER:
+                // Set channel hues and brightnesses from HomeKit state
                 if (channelService1 && channelService2 && channelService3 && channelService4) {
-                    fireAnim.setChannelHues(
+                    monochromaticRunnerAnim.setChannelHues(
                         channelService1->desired.hue,
                         channelService2->desired.hue,
                         channelService3->desired.hue,
                         channelService4->desired.hue
                     );
+                    monochromaticRunnerAnim.setChannelBrightnesses(
+                        channelService1->desired.brightness,
+                        channelService2->desired.brightness,
+                        channelService3->desired.brightness,
+                        channelService4->desired.brightness
+                    );
                 }
-                fireAnim.begin();
+                monochromaticRunnerAnim.begin();
+                break;
+
+            case ANIM_COMPLEMENTARY_RUNNER:
+                // Set channel hues and brightnesses from HomeKit state
+                if (channelService1 && channelService2 && channelService3 && channelService4) {
+                    complementaryRunnerAnim.setChannelHues(
+                        channelService1->desired.hue,
+                        channelService2->desired.hue,
+                        channelService3->desired.hue,
+                        channelService4->desired.hue
+                    );
+                    complementaryRunnerAnim.setChannelBrightnesses(
+                        channelService1->desired.brightness,
+                        channelService2->desired.brightness,
+                        channelService3->desired.brightness,
+                        channelService4->desired.brightness
+                    );
+                }
+                complementaryRunnerAnim.begin();
+                break;
+
+            case ANIM_SPLIT_COMPLEMENTARY_RUNNER:
+                // Set channel hues and brightnesses from HomeKit state
+                if (channelService1 && channelService2 && channelService3 && channelService4) {
+                    splitComplementaryRunnerAnim.setChannelHues(
+                        channelService1->desired.hue,
+                        channelService2->desired.hue,
+                        channelService3->desired.hue,
+                        channelService4->desired.hue
+                    );
+                    splitComplementaryRunnerAnim.setChannelBrightnesses(
+                        channelService1->desired.brightness,
+                        channelService2->desired.brightness,
+                        channelService3->desired.brightness,
+                        channelService4->desired.brightness
+                    );
+                }
+                splitComplementaryRunnerAnim.begin();
+                break;
+
+            case ANIM_TRIADIC_RUNNER:
+                // Set channel hues and brightnesses from HomeKit state
+                if (channelService1 && channelService2 && channelService3 && channelService4) {
+                    triadicRunnerAnim.setChannelHues(
+                        channelService1->desired.hue,
+                        channelService2->desired.hue,
+                        channelService3->desired.hue,
+                        channelService4->desired.hue
+                    );
+                    triadicRunnerAnim.setChannelBrightnesses(
+                        channelService1->desired.brightness,
+                        channelService2->desired.brightness,
+                        channelService3->desired.brightness,
+                        channelService4->desired.brightness
+                    );
+                }
+                triadicRunnerAnim.begin();
+                break;
+
+            case ANIM_SQUARE_RUNNER:
+                // Set channel hues and brightnesses from HomeKit state
+                if (channelService1 && channelService2 && channelService3 && channelService4) {
+                    squareRunnerAnim.setChannelHues(
+                        channelService1->desired.hue,
+                        channelService2->desired.hue,
+                        channelService3->desired.hue,
+                        channelService4->desired.hue
+                    );
+                    squareRunnerAnim.setChannelBrightnesses(
+                        channelService1->desired.brightness,
+                        channelService2->desired.brightness,
+                        channelService3->desired.brightness,
+                        channelService4->desired.brightness
+                    );
+                }
+                squareRunnerAnim.begin();
                 break;
 
             case ANIM_MONOCHROMATIC:
@@ -309,8 +419,25 @@ private:
             int b4 = channelService4->desired.brightness;
 
             switch (currentMode) {
-                case ANIM_FIRE:
-                    fireAnim.setChannelHues(h1, h2, h3, h4);
+                case ANIM_MONOCHROMATIC_RUNNER:
+                    monochromaticRunnerAnim.setChannelHues(h1, h2, h3, h4);
+                    monochromaticRunnerAnim.setChannelBrightnesses(b1, b2, b3, b4);
+                    break;
+                case ANIM_COMPLEMENTARY_RUNNER:
+                    complementaryRunnerAnim.setChannelHues(h1, h2, h3, h4);
+                    complementaryRunnerAnim.setChannelBrightnesses(b1, b2, b3, b4);
+                    break;
+                case ANIM_SPLIT_COMPLEMENTARY_RUNNER:
+                    splitComplementaryRunnerAnim.setChannelHues(h1, h2, h3, h4);
+                    splitComplementaryRunnerAnim.setChannelBrightnesses(b1, b2, b3, b4);
+                    break;
+                case ANIM_TRIADIC_RUNNER:
+                    triadicRunnerAnim.setChannelHues(h1, h2, h3, h4);
+                    triadicRunnerAnim.setChannelBrightnesses(b1, b2, b3, b4);
+                    break;
+                case ANIM_SQUARE_RUNNER:
+                    squareRunnerAnim.setChannelHues(h1, h2, h3, h4);
+                    squareRunnerAnim.setChannelBrightnesses(b1, b2, b3, b4);
                     break;
                 case ANIM_MONOCHROMATIC:
                     monochromaticAnim.setChannelHues(h1, h2, h3, h4);
@@ -338,8 +465,24 @@ private:
 
         // Render animation
         switch (currentMode) {
-            case ANIM_FIRE:
-                fireAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
+            case ANIM_MONOCHROMATIC_RUNNER:
+                monochromaticRunnerAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
+                break;
+
+            case ANIM_COMPLEMENTARY_RUNNER:
+                complementaryRunnerAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
+                break;
+
+            case ANIM_SPLIT_COMPLEMENTARY_RUNNER:
+                splitComplementaryRunnerAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
+                break;
+
+            case ANIM_TRIADIC_RUNNER:
+                triadicRunnerAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
+                break;
+
+            case ANIM_SQUARE_RUNNER:
+                squareRunnerAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
                 break;
 
             case ANIM_MONOCHROMATIC:
@@ -384,7 +527,11 @@ private:
     const char* getModeName(AnimationMode mode) const {
         switch (mode) {
             case ANIM_NONE: return "HomeKit";
-            case ANIM_FIRE: return "Fire";
+            case ANIM_MONOCHROMATIC_RUNNER: return "Monochromatic Runner";
+            case ANIM_COMPLEMENTARY_RUNNER: return "Complementary Runner";
+            case ANIM_SPLIT_COMPLEMENTARY_RUNNER: return "Split-Complementary Runner";
+            case ANIM_TRIADIC_RUNNER: return "Triadic Runner";
+            case ANIM_SQUARE_RUNNER: return "Square Runner";
             case ANIM_MONOCHROMATIC: return "Monochromatic Twinkle";
             case ANIM_COMPLEMENTARY: return "Complementary Twinkle";
             case ANIM_SPLIT_COMPLEMENTARY: return "Split-Complementary Twinkle";

@@ -91,7 +91,13 @@ Users can change any channel's color via HomeKit.
 #### Ambient Animations:
 - **Fire**: Heat-based effect using channel's hue (black → hue → white)
 - **Twinkle**: Random sparkles using channel's hue
-- Animations respect HomeKit power state (OFF channels stay off)
+
+**Animation Requirements (all existing and future):**
+- Must use channel's HomeKit hue as primary color (90° default spacing)
+- Must reflect real-time hue changes from HomeKit (update each frame)
+- Must respect HomeKit power state (OFF channels stay off)
+- Must use same rendering logic for all 4 channels (no code duplication)
+- Animation mode persists in NVS across power cycles
 
 ### Hardware Testing Checklist
 

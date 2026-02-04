@@ -2,16 +2,16 @@
 
 #include <Preferences.h>
 #include "animation_base.h"
-#include "monochromatic_runner.h"
-#include "complementary_runner.h"
-#include "split_complementary_runner.h"
-#include "triadic_runner.h"
-#include "square_runner.h"
-#include "monochromatic_twinkle.h"
-#include "complementary_twinkle.h"
-#include "split_complementary_twinkle.h"
-#include "triadic_twinkle.h"
-#include "square_twinkle.h"
+#include "runner/monochromatic_runner.h"
+#include "runner/complementary_runner.h"
+#include "runner/split_complementary_runner.h"
+#include "runner/triadic_runner.h"
+#include "runner/square_runner.h"
+#include "twinkle/monochromatic_twinkle.h"
+#include "twinkle/complementary_twinkle.h"
+#include "twinkle/split_complementary_twinkle.h"
+#include "twinkle/triadic_twinkle.h"
+#include "twinkle/square_twinkle.h"
 #include "../led_channel.h"
 
 // Animation modes

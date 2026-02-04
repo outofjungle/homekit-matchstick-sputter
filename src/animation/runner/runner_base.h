@@ -1,6 +1,7 @@
 #pragma once
 
-#include "animation_base.h"
+#include "../animation_base.h"
+#include "../gaussian_blend.h"
 
 // Base class for all harmony-based runner animations
 //
@@ -12,7 +13,7 @@
 // Runner layer: Groups of LEDs travel from position 0 to end, colored by harmony
 //   - Runner count: 1 (at brightness=0) to 4 (at brightness=100)
 //   - Length: RUNNER_LENGTH LEDs
-//   - Tail blending: Back TAIL_PERCENT of runner blends with base
+//   - Gaussian blending: Bell curve blend between base and runner colors
 //
 // Derived classes implement getHarmonyOffsets(), getNumHarmonyHues(), getName()
 class RunnerAnimationBase : public AnimationBase
@@ -25,7 +26,7 @@ public:
     static constexpr uint8_t BASE_BRIGHTNESS = 40; // Min breathing brightness
     static constexpr uint8_t MAX_BRIGHTNESS = 220; // Max breathing brightness
     static constexpr uint8_t RUNNER_LENGTH = 30;   // LEDs per runner
-    static constexpr uint8_t TAIL_PERCENT = 33;    // % of runner that blends with base
+    static constexpr float GAUSSIAN_VARIANCE = 2.5f; // Gaussian blend width (~6-8 pixel blob)
     static constexpr uint8_t MIN_RUNNERS = 1;      // At brightness=0
     static constexpr uint8_t MAX_RUNNERS = 4;      // At brightness=100
     static constexpr uint8_t MAX_RUNNER_SLOTS = 4; // Per channel
@@ -92,6 +93,9 @@ public:
 
     void reset() override
     {
+        // Precompute Gaussian blend LUT
+        gaussianLUT.compute(GAUSSIAN_VARIANCE);
+
         // Initialize base layer state
         for (int ch = 0; ch < 4; ch++)
         {
@@ -125,6 +129,9 @@ protected:
     // Runner state
     Runner runners[4][MAX_RUNNER_SLOTS]; // Per channel
     uint16_t framesSinceSpawn[4];        // Per channel, for spawn probability
+
+    // Gaussian blend lookup table
+    GaussianBlendLUT<RUNNER_LENGTH> gaussianLUT;
 
     // Cached channel state
     int channelHue[4];
@@ -350,21 +357,10 @@ private:
                         runners[channelIndex][r].sat,
                         runners[channelIndex][r].val);
 
-                    // Calculate blend amount
-                    int tailLength = (RUNNER_LENGTH * TAIL_PERCENT) / 100;
-                    int distanceFromTail = i - tailPos;
-
-                    if (distanceFromTail < tailLength)
-                    {
-                        // In tail: blend
-                        uint8_t blendAmount = map(distanceFromTail, 0, tailLength - 1, 0, 255);
-                        finalColor = blend(baseColor, runnerColor, blendAmount);
-                    }
-                    else
-                    {
-                        // In body: full runner color
-                        finalColor = runnerColor;
-                    }
+                    // Calculate blend amount using Gaussian LUT
+                    int posInRunner = i - tailPos;
+                    uint8_t blendFactor = gaussianLUT.table[posInRunner];
+                    finalColor = blend(baseColor, runnerColor, blendFactor);
 
                     inRunner = true;
                     break; // Only apply first runner found

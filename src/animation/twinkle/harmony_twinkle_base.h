@@ -1,6 +1,6 @@
 #pragma once
 
-#include "animation_base.h"
+#include "../animation_base.h"
 
 // Base class for all harmony-based twinkle animations
 // Shares LED strip among harmony colors using brightness-based distribution

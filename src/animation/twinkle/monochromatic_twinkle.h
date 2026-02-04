@@ -1,6 +1,6 @@
 #pragma once
 
-#include "animation_base.h"
+#include "../animation_base.h"
 
 // Monochromatic Twinkle Effect Animation
 // Random LEDs fade in and out at different rates, creating a sparkling effect

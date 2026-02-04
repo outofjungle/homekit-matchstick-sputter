@@ -36,3 +36,19 @@ constexpr const char* DEVICE_MANUFACTURER = "0x76656E Labs";
 constexpr const char* DEVICE_SERIAL = "SPT-001";
 constexpr const char* DEVICE_MODEL = "4CH-LED";
 constexpr const char* DEVICE_FIRMWARE = "1.0.0";
+
+// Channel Defaults
+constexpr int NUM_CHANNELS = 4;
+constexpr int DEFAULT_BRIGHTNESS = 80;    // Minimum visible brightness (was MIN_BRIGHTNESS)
+constexpr int DEFAULT_SATURATION = 100;   // Full color saturation
+
+// Default hue per channel (90° spacing around color wheel)
+inline int getDefaultHue(int channelNum) {
+    switch (channelNum) {
+        case 1: return 0;    // Red
+        case 2: return 90;   // Yellow/Orange
+        case 3: return 180;  // Cyan
+        case 4: return 270;  // Purple/Magenta
+        default: return 0;
+    }
+}

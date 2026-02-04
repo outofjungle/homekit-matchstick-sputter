@@ -48,6 +48,7 @@ bool animButtonLastState = HIGH;  // GPIO0 is pulled high, LOW when pressed
 // Forward declaration
 void blankAllLEDs();
 void updateAnimationButton();
+void applyChannelDefaults();
 
 // Handle short press (display mode cycling)
 void handleShortPress() {
@@ -89,6 +90,62 @@ void blankAllLEDs() {
     fill_solid(ledChannel3, NUM_LEDS_PER_CHANNEL, CRGB::Black);
     fill_solid(ledChannel4, NUM_LEDS_PER_CHANNEL, CRGB::Black);
     FastLED.show();
+}
+
+// Apply channel defaults and validate NVS state
+void applyChannelDefaults() {
+    Serial.println("Applying channel defaults...");
+
+    for (int ch = 1; ch <= NUM_CHANNELS; ch++) {
+        ChannelStorage storage(ch);
+        ChannelStorage::ChannelState state = {false, -1, -1, -1};  // Sentinel init
+        bool loaded = storage.load(state);
+        bool needsSave = false;
+
+        if (!loaded) {
+            // No NVS: apply all defaults
+            state.power = true;
+            state.hue = getDefaultHue(ch);
+            state.saturation = DEFAULT_SATURATION;
+            state.brightness = DEFAULT_BRIGHTNESS;
+            needsSave = true;
+            Serial.printf("  Ch%d: No NVS data, applying all defaults\n", ch);
+        }
+
+        // Per-field validation (runs even if NVS existed)
+        if (state.hue < 0 || state.hue > 360) {
+            state.hue = getDefaultHue(ch);
+            needsSave = true;
+            Serial.printf("  Ch%d: Hue invalid, defaulting to %d°\n", ch, state.hue);
+        }
+
+        if (state.saturation < 0 || state.saturation > 100) {
+            state.saturation = DEFAULT_SATURATION;
+            needsSave = true;
+            Serial.printf("  Ch%d: Saturation invalid, defaulting to %d%%\n", ch, state.saturation);
+        }
+
+        if (state.brightness <= 0 || state.brightness > 100) {
+            state.brightness = DEFAULT_BRIGHTNESS;
+            needsSave = true;
+            Serial.printf("  Ch%d: Brightness invalid/zero, defaulting to %d%%\n", ch, state.brightness);
+        }
+
+        if (!state.power) {
+            state.power = true;
+            needsSave = true;
+            Serial.printf("  Ch%d: Power off, forcing ON\n", ch);
+        }
+
+        if (needsSave) {
+            storage.save(state);
+        }
+
+        Serial.printf("  Ch%d: H=%d° S=%d%% B=%d%% Power=ON\n",
+                      ch, state.hue, state.saturation, state.brightness);
+    }
+
+    Serial.println("Channel defaults applied.");
 }
 
 // Update animation button (GPIO0)
@@ -274,6 +331,9 @@ void setup() {
     pinMode(PIN_STATUS_LED, OUTPUT);
     digitalWrite(PIN_STATUS_LED, LOW);  // Start off during setup
     Serial.println("Status LED pin configured (GPIO22).");
+
+    // Apply channel defaults before HomeSpan initialization
+    applyChannelDefaults();
 
     // Set WiFi credentials before HomeSpan initialization
     homeSpan.setWifiCredentials(WIFI_SSID, WIFI_PASSWORD);

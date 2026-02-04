@@ -3,6 +3,7 @@
 #include "HomeSpan.h"
 #include <FastLED.h>
 #include "channel_storage.h"
+#include "config.h"
 
 // LED Channel State Machine
 enum class ChannelState {
@@ -27,7 +28,6 @@ struct DEV_LedChannel : Service::LightBulb {
     // FSM state
     ChannelState currentState = ChannelState::NORMAL;
     unsigned long stateEnteredMs = 0;
-    static constexpr int MIN_BRIGHTNESS = 80;  // Force 0 to 80%
 
     // Desired state (what we want to show when not in NOTIFICATION/BOOT_FLASH)
     struct {
@@ -37,22 +37,6 @@ struct DEV_LedChannel : Service::LightBulb {
         int brightness;
     } desired;
 
-    // Default hue values per channel (90° spacing around color wheel)
-    static int getDefaultHue(int channelNum) {
-        switch (channelNum) {
-            case 1: return 0;    // Red
-            case 2: return 90;   // Yellow/Orange
-            case 3: return 180;  // Cyan
-            case 4: return 270;  // Purple/Magenta
-            default: return 0;
-        }
-    }
-
-    // Default saturation per channel (all 100% for vivid colors)
-    static int getDefaultSaturation(int channelNum) {
-        return 100;  // Full saturation for all channels
-    }
-
     // Constructor - initializes the LightBulb service with HSV characteristics
     DEV_LedChannel(CRGB* ledArray, uint16_t count, int channelNum)
         : Service::LightBulb(), storage(channelNum) {
@@ -60,71 +44,32 @@ struct DEV_LedChannel : Service::LightBulb {
         numLeds = count;
         channelNumber = channelNum;
 
-        // Try to load saved state from NVS
+        // Load validated state from NVS (guaranteed valid by applyChannelDefaults)
         ChannelStorage::ChannelState savedState;
-        bool hasStoredState = storage.load(savedState);
+        storage.load(savedState);
 
-        if (hasStoredState) {
-            // PRODUCT REQUIREMENT: Correct brightness=0 to MIN_BRIGHTNESS in NVS immediately
-            if (savedState.brightness == 0) {
-                Serial.printf("Channel %d: Correcting brightness=0 to %d%% in NVS\n", channelNum, MIN_BRIGHTNESS);
-                savedState.brightness = MIN_BRIGHTNESS;
-                storage.save(savedState);  // Save corrected value immediately
-            }
+        // Create HomeKit characteristics with saved values
+        power = new Characteristic::On(savedState.power);
+        hue = new Characteristic::Hue(savedState.hue);
+        saturation = new Characteristic::Saturation(savedState.saturation);
+        brightness = new Characteristic::Brightness(savedState.brightness);
 
-            // Restore saved values to HomeKit characteristics
-            power = new Characteristic::On(savedState.power);
-            hue = new Characteristic::Hue(savedState.hue);
-            saturation = new Characteristic::Saturation(savedState.saturation);
-            brightness = new Characteristic::Brightness(savedState.brightness);
+        // Store desired state
+        desired.power = savedState.power;
+        desired.hue = savedState.hue;
+        desired.saturation = savedState.saturation;
+        desired.brightness = savedState.brightness;
 
-            // Store desired state
-            desired.power = savedState.power;
-            desired.hue = savedState.hue;
-            desired.saturation = savedState.saturation;
-            desired.brightness = savedState.brightness;
+        Serial.printf("Channel %d: Loaded - Power=%s H=%d S=%d%% B=%d%%\n",
+                     channelNum,
+                     savedState.power ? "ON" : "OFF",
+                     savedState.hue, savedState.saturation, savedState.brightness);
 
-            Serial.printf("Channel %d: Loaded state from NVS - Power=%s H=%d S=%d%% B=%d%%\n",
-                         channelNum,
-                         savedState.power ? "ON" : "OFF",
-                         savedState.hue,
-                         savedState.saturation,
-                         savedState.brightness);
-
-            // Enter appropriate initial state via FSM
-            if (!savedState.power) {
-                enterState(ChannelState::OFF);
-            } else {
-                enterState(ChannelState::NORMAL);
-            }
+        // Enter FSM state (power guaranteed ON by defaults, but handle anyway)
+        if (!savedState.power) {
+            enterState(ChannelState::OFF);
         } else {
-            // No saved state - use channel-specific defaults
-            int defaultHue = getDefaultHue(channelNum);
-            int defaultSat = getDefaultSaturation(channelNum);
-            power = new Characteristic::On(1);                         // Default: On
-            hue = new Characteristic::Hue(defaultHue);                 // Channel-specific hue
-            saturation = new Characteristic::Saturation(defaultSat);   // Channel-specific saturation
-            brightness = new Characteristic::Brightness(MIN_BRIGHTNESS);  // Default: 80% brightness
-
-            // Store desired state
-            desired.power = true;
-            desired.hue = defaultHue;
-            desired.saturation = defaultSat;
-            desired.brightness = MIN_BRIGHTNESS;
-
-            Serial.printf("Channel %d: No saved state, using defaults (H=%d, S=%d%%, B=%d%%)\n",
-                         channelNum, defaultHue, defaultSat, MIN_BRIGHTNESS);
-
-            // Enter NORMAL state (apply defaults)
             enterState(ChannelState::NORMAL);
-
-            // Save the defaults to NVS
-            ChannelStorage::ChannelState defaultState;
-            defaultState.power = true;
-            defaultState.hue = defaultHue;
-            defaultState.saturation = defaultSat;
-            defaultState.brightness = MIN_BRIGHTNESS;
-            storage.save(defaultState);
         }
     }
 
@@ -223,8 +168,8 @@ struct DEV_LedChannel : Service::LightBulb {
         int s = saturation->getNewVal();
         int v = brightness->getNewVal();
 
-        // Force brightness=0 to MIN_BRIGHTNESS
-        int clampedBrightness = (v == 0) ? MIN_BRIGHTNESS : v;
+        // Force brightness=0 to DEFAULT_BRIGHTNESS
+        int clampedBrightness = (v == 0) ? DEFAULT_BRIGHTNESS : v;
 
         // Update desired state
         desired.power = powerOn;

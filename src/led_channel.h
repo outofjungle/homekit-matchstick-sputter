@@ -28,6 +28,7 @@ struct DEV_LedChannel : Service::LightBulb {
     // FSM state
     ChannelState currentState = ChannelState::NORMAL;
     unsigned long stateEnteredMs = 0;
+    bool pendingHomeKitSync = false;
 
     // Desired state (what we want to show when not in NOTIFICATION/BOOT_FLASH)
     struct {
@@ -71,6 +72,9 @@ struct DEV_LedChannel : Service::LightBulb {
         } else {
             enterState(ChannelState::NORMAL);
         }
+
+        // Flag sync to ensure boot corrections reach HomeKit controller
+        pendingHomeKitSync = true;
     }
 
     // Helper method to apply LED state
@@ -123,6 +127,22 @@ struct DEV_LedChannel : Service::LightBulb {
         // No time-based transitions needed (BOOT_FLASH removed)
     }
 
+    // HomeSpan loop - sync device state changes to HomeKit
+    void loop() {
+        if (!pendingHomeKitSync) return;
+        pendingHomeKitSync = false;
+
+        // Sync any characteristics where desired state diverges from what HomeKit knows
+        if (desired.power != power->getVal())
+            power->setVal(desired.power);
+        if (desired.hue != hue->getVal())
+            hue->setVal(desired.hue);
+        if (desired.saturation != saturation->getVal())
+            saturation->setVal(desired.saturation);
+        if (desired.brightness != brightness->getVal())
+            brightness->setVal(desired.brightness);
+    }
+
     // FSM: Yield control to notification system
     void yieldToNotification() {
         if (currentState != ChannelState::NOTIFICATION) {
@@ -170,6 +190,9 @@ struct DEV_LedChannel : Service::LightBulb {
 
         // Force brightness=0 to DEFAULT_BRIGHTNESS
         int clampedBrightness = (v == 0) ? DEFAULT_BRIGHTNESS : v;
+        if (v == 0) {
+            pendingHomeKitSync = true;
+        }
 
         // Update desired state
         desired.power = powerOn;

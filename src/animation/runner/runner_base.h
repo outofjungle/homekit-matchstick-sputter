@@ -27,9 +27,9 @@ public:
     static constexpr uint8_t MAX_BRIGHTNESS = 220; // Max breathing brightness
     static constexpr uint8_t RUNNER_LENGTH = 30;   // LEDs per runner
     static constexpr float GAUSSIAN_VARIANCE = 2.5f; // Gaussian blend width (~6-8 pixel blob)
-    static constexpr uint8_t MIN_RUNNERS = 1;      // At brightness=0
-    static constexpr uint8_t MAX_RUNNERS = 4;      // At brightness=100
-    static constexpr uint8_t MAX_RUNNER_SLOTS = 4; // Per channel
+    static constexpr uint8_t MIN_RUNNERS = 1;      // At brightness=100
+    static constexpr uint8_t MAX_RUNNERS = 6;      // At brightness=0
+    static constexpr uint8_t MAX_RUNNER_SLOTS = 6; // Per channel
 
     struct Runner
     {
@@ -283,8 +283,8 @@ private:
             {
                 framesSinceSpawn[ch]++;
 
-                // Calculate max runners based on brightness
-                int maxRunners = MIN_RUNNERS + (cachedBrightness[ch] * (MAX_RUNNERS - MIN_RUNNERS)) / 100;
+                // Calculate max runners based on brightness (inverted: low brightness = more runners)
+                int maxRunners = MAX_RUNNERS - (cachedBrightness[ch] * (MAX_RUNNERS - MIN_RUNNERS)) / 100;
 
                 // Count active runners
                 int activeCount = 0;

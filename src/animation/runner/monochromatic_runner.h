@@ -2,7 +2,7 @@
 
 #include "runner_base.h"
 
-// Monochromatic runner animation: black and white runners
+// Monochromatic runner animation: primary hue and white runners
 class MonochromaticRunner : public RunnerAnimationBase {
 public:
     const char* getName() const override {
@@ -19,14 +19,12 @@ protected:
         return 1;
     }
 
-    // Override to use black/white instead of hues
+    // Override to use primary hue/white instead of hues
     void pickRunnerColor(int channelIndex, uint8_t& h, uint8_t& s, uint8_t& v) override {
-        // 50/50 chance of black or white
+        // 50/50 chance of primary hue or white
         if (random(2) == 0) {
-            // Black
-            h = 0;
-            s = 0;
-            v = 0;
+            // Primary hue (use base class implementation)
+            RunnerAnimationBase::pickRunnerColor(channelIndex, h, s, v);
         } else {
             // White
             h = 0;

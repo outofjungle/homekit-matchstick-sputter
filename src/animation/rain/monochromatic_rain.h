@@ -2,7 +2,7 @@
 
 #include "rain_base.h"
 
-// Monochromatic rain animation: primary hue and white raindrops
+// Monochromatic rain animation: primary hue (white via PRIMARY_HUE_SAT=0)
 class MonochromaticRain : public RainAnimationBase {
 public:
     const char* getName() const override {
@@ -17,19 +17,5 @@ protected:
 
     int getNumHarmonyHues() const override {
         return 1;
-    }
-
-    // Override to use primary hue/white instead of harmony hues
-    void pickRaindropColor(int channelIndex, uint8_t& h, uint8_t& s, uint8_t& v) override {
-        // 50/50 chance of primary hue or white
-        if (random(2) == 0) {
-            // Primary hue (use base class implementation)
-            RainAnimationBase::pickRaindropColor(channelIndex, h, s, v);
-        } else {
-            // White
-            h = 0;
-            s = 0;
-            v = 255;
-        }
     }
 };

@@ -18,9 +18,9 @@
 //    - High heat (171-255): saturated -> desaturated/white (S ramps down)
 class FireAnimation : public AnimationBase {
 public:
-    // Tunable parameters
-    static constexpr uint8_t COOLING = 55;        // How much to cool down each frame (higher = faster cooling)
-    static constexpr uint8_t SPARKING = 120;      // Probability of new sparks (0-255, higher = more sparks)
+    // Tunable parameters (tuned for brighter appearance)
+    static constexpr uint8_t COOLING = 45;        // How much to cool down each frame (lower = stays brighter longer)
+    static constexpr uint8_t SPARKING = 140;      // Probability of new sparks (0-255, higher = more sparks)
     static constexpr unsigned long FRAME_MS = 50; // Frame update interval (50ms = 20fps)
 
     FireAnimation() {

@@ -30,6 +30,9 @@ constexpr unsigned long FACTORY_RESET_CONFIRM_MS = 3000;   // 3 seconds - green 
 // Note: Animation duration is 3 cycles × 8 LEDs × 300ms = ~7.2 seconds
 // Total time if held: 5s (hold) + 7.2s (animation) = ~12.2s to trigger reset
 
+// Animation Button Configuration
+constexpr unsigned long ANIM_BUTTON_LONG_PRESS_MS = 2000;  // 2 seconds - long press for reset
+
 // HomeSpan Configuration
 constexpr const char* DEVICE_NAME = "Sputter Lights";
 constexpr const char* DEVICE_MANUFACTURER = "0x76656E Labs";

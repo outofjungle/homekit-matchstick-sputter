@@ -21,15 +21,15 @@ class RunnerAnimationBase : public AnimationBase
 public:
     // Tunable parameters
     static constexpr uint16_t MAX_LEDS = 200;
-    static constexpr unsigned long FRAME_MS = 50;  // 20fps
-    static constexpr int ANGLE_WIDTH = 10;         // ±5° hue spread
-    static constexpr uint8_t BASE_BRIGHTNESS = 40; // Min breathing brightness
-    static constexpr uint8_t MAX_BRIGHTNESS = 220; // Max breathing brightness
-    static constexpr uint8_t RUNNER_LENGTH = 30;   // LEDs per runner
+    static constexpr unsigned long FRAME_MS = 50;    // 20fps
+    static constexpr int ANGLE_WIDTH = 10;           // ±5° hue spread
+    static constexpr uint8_t BASE_BRIGHTNESS = 40;   // Min breathing brightness
+    static constexpr uint8_t MAX_BRIGHTNESS = 220;   // Max breathing brightness
+    static constexpr uint8_t RUNNER_LENGTH = 30;     // LEDs per runner
     static constexpr float GAUSSIAN_VARIANCE = 2.5f; // Gaussian blend width (~6-8 pixel blob)
-    static constexpr uint8_t MIN_RUNNERS = 1;      // At brightness=100
-    static constexpr uint8_t MAX_RUNNERS = 6;      // At brightness=0
-    static constexpr uint8_t MAX_RUNNER_SLOTS = 6; // Per channel
+    static constexpr uint8_t MIN_RUNNERS = 1;        // At brightness=100
+    static constexpr uint8_t MAX_RUNNERS = 6;        // At brightness=0
+    static constexpr uint8_t MAX_RUNNER_SLOTS = 6;   // Per channel
 
     struct Runner
     {
@@ -164,7 +164,7 @@ protected:
         int spread = generateSpread();
         hue360 = (hue360 + spread + 360) % 360;
         h = map(hue360, 0, 360, 0, 255);
-        s = 255;
+        s = (offsets[idx] == 0) ? PRIMARY_HUE_SAT : 255; // Desaturate primary hue
         v = 255;
     }
 
@@ -228,17 +228,23 @@ private:
                 hueOffset[ch][i] += nextHueDir;
                 hueOffset[ch][i] = constrain(hueOffset[ch][i], -ANGLE_WIDTH / 2, ANGLE_WIDTH / 2);
 
-                // Brightness random walk
-                int8_t nextBrightDir = markovTransition(brightDir[ch][i]);
+                // Brightness random walk (biased towards brighter)
+                int8_t nextBrightDir = markovTransitionBrightnessBiased(brightDir[ch][i]);
 
-                // Limit bouncing
+                // Limit bouncing at MAX with optional knock-to-zero effect
                 if (baseBrightness[ch][i] >= MAX_BRIGHTNESS && nextBrightDir > 0)
                 {
-                    nextBrightDir = markovTransition(-1);
+                    if (random(100) < BRIGHTNESS_KNOCK_ZERO_PCT)
+                    {
+                        baseBrightness[ch][i] = 0;
+                        brightDir[ch][i] = 0;
+                        continue; // Skip normal step+constrain
+                    }
+                    nextBrightDir = markovTransitionBrightnessBiased(-1);
                 }
                 else if (baseBrightness[ch][i] <= BASE_BRIGHTNESS && nextBrightDir < 0)
                 {
-                    nextBrightDir = markovTransition(1);
+                    nextBrightDir = markovTransitionBrightnessBiased(1);
                 }
 
                 brightDir[ch][i] = nextBrightDir;

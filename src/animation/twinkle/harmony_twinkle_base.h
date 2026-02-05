@@ -95,6 +95,7 @@ protected:
     uint8_t currentBrightness[4][MAX_LEDS];
     uint8_t targetBrightness[4][MAX_LEDS];
     uint8_t ledHue[4][MAX_LEDS];  // Pre-assigned hue per LED (FastLED 0-255)
+    uint8_t ledSat[4][MAX_LEDS];  // Pre-assigned saturation per LED (0=white for primary, 255 for secondary)
 
     // Cached channel brightness for change detection
     int cachedBrightness[4];
@@ -144,11 +145,13 @@ protected:
         for (int h = 0; h < numHues && ledIndex < MAX_LEDS; h++) {
             int count = (h == 0) ? primaryCount : secondaryCount;
             int hue360 = (primaryHue360 + offsets[h] + 360) % 360;
+            uint8_t saturation = (offsets[h] == 0) ? PRIMARY_HUE_SAT : 255;  // Desaturate primary hue
 
             for (int i = 0; i < count && ledIndex < MAX_LEDS; i++) {
                 int spread = generateSpread();
                 int finalHue360 = (hue360 + spread + 360) % 360;
                 ledHue[channelIndex][ledIndex] = map(finalHue360, 0, 360, 0, 255);
+                ledSat[channelIndex][ledIndex] = saturation;
                 ledIndex++;
             }
         }
@@ -169,8 +172,12 @@ private:
             for (int i = 0; i < MAX_LEDS; i++) {
                 // Random chance to assign new target brightness
                 if (random(TWINKLE_DENSITY) == 0) {
-                    // Pick a random brightness between BASE and MAX
-                    targetBrightness[ch][i] = random(BASE_BRIGHTNESS, MAX_BRIGHTNESS);
+                    // Pick a random brightness biased towards brighter values
+                    // Use cubic distribution: r^3 biases towards 1.0 (brighter)
+                    float r = random(1000) / 1000.0f;  // 0.0 to 1.0
+                    r = r * r * r;  // Cubic bias towards 1.0
+                    uint8_t range = MAX_BRIGHTNESS - BASE_BRIGHTNESS;
+                    targetBrightness[ch][i] = BASE_BRIGHTNESS + (uint8_t)(r * range);
                 }
 
                 // Fade current brightness toward target
@@ -189,11 +196,11 @@ private:
         }
     }
 
-    // Render twinkle effect for a single channel using pre-assigned hues
+    // Render twinkle effect for a single channel using pre-assigned hues and saturations
     void renderChannel(CRGB* leds, uint16_t numLeds, uint8_t channelIndex) {
         for (int i = 0; i < numLeds; i++) {
-            // Use pre-assigned hue with variable brightness
-            leds[i] = CHSV(ledHue[channelIndex][i], 255, currentBrightness[channelIndex][i]);
+            // Use pre-assigned hue and saturation with variable brightness
+            leds[i] = CHSV(ledHue[channelIndex][i], ledSat[channelIndex][i], currentBrightness[channelIndex][i]);
         }
     }
 };

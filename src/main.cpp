@@ -25,7 +25,7 @@ NotificationManager* notificationMgr = nullptr;
 // Animation manager for ambient animations
 AnimationManager* animationMgr = nullptr;
 
-// Button state machine for factory reset
+// Button state machine for factory reset (GPIO39)
 enum ButtonState {
     BTN_IDLE,               // Not pressed
     BTN_PRESSED,            // Pressed < 5s (short press for mode cycle)
@@ -41,20 +41,84 @@ unsigned long confirmStartMs = 0;
 bool buttonLastState = HIGH;  // GPIO39 is pulled high, LOW when pressed
 bool buttonReleasedDuringAnimation = false;  // Track if button was released during 3x sequence
 uint8_t currentDisplayMode = 0;  // For display mode cycling
-
-// Animation button state (GPIO0)
 bool animButtonLastState = HIGH;  // GPIO0 is pulled high, LOW when pressed
+
+// Animation button state machine
+enum AnimButtonState {
+    ANIM_BTN_IDLE,
+    ANIM_BTN_PRESSED
+};
+AnimButtonState animButtonState = ANIM_BTN_IDLE;
+unsigned long animButtonPressStartMs = 0;
 
 // Forward declaration
 void blankAllLEDs();
-void updateAnimationButton();
 void applyChannelDefaults();
+void updateAnimationButton();
 
 // Handle short press (display mode cycling)
 void handleShortPress() {
     currentDisplayMode = (currentDisplayMode + 1) % 4;  // Cycle through 4 modes
     Serial.printf("Display mode: %d\n", currentDisplayMode);
     // TODO: Implement actual display mode logic (placeholder for beads-4vz)
+}
+
+// Update animation button (GPIO0) - state machine with long press support
+void updateAnimationButton() {
+    bool currentButtonState = digitalRead(PIN_BUTTON_ANIM);
+    unsigned long now = millis();
+
+    // Debounce
+    static unsigned long lastDebounceTime = 0;
+    if ((now - lastDebounceTime) < DEBOUNCE_MS) {
+        return;
+    }
+
+    // Detect button press/release edges
+    bool buttonPressed = (currentButtonState == LOW);
+    bool buttonJustPressed = (buttonPressed && animButtonLastState == HIGH);
+    bool buttonJustReleased = (!buttonPressed && animButtonLastState == LOW);
+
+    if (buttonJustPressed || buttonJustReleased) {
+        lastDebounceTime = now;
+    }
+
+    animButtonLastState = currentButtonState;
+
+    // State machine logic
+    switch (animButtonState) {
+        case ANIM_BTN_IDLE:
+            if (buttonJustPressed) {
+                animButtonState = ANIM_BTN_PRESSED;
+                animButtonPressStartMs = now;
+                Serial.println("Animation button pressed");
+            }
+            break;
+
+        case ANIM_BTN_PRESSED:
+            // Check if long press threshold reached
+            if (buttonPressed && (now - animButtonPressStartMs) >= ANIM_BUTTON_LONG_PRESS_MS) {
+                // Long press: reset to defaults immediately
+                Serial.println("Animation button long press - resetting to defaults");
+                applyChannelDefaults();
+                if (animationMgr) {
+                    animationMgr->setMode(ANIM_NONE);
+                }
+                animButtonState = ANIM_BTN_IDLE;
+            }
+            else if (buttonJustReleased) {
+                // Short press: cycle animation mode
+                unsigned long pressDuration = now - animButtonPressStartMs;
+                if (pressDuration < ANIM_BUTTON_LONG_PRESS_MS) {
+                    Serial.println("Animation button short press - cycling mode");
+                    if (animationMgr) {
+                        animationMgr->cycleMode();
+                    }
+                }
+                animButtonState = ANIM_BTN_IDLE;
+            }
+            break;
+    }
 }
 
 // Handle factory reset trigger
@@ -148,31 +212,6 @@ void applyChannelDefaults() {
     Serial.println("Channel defaults applied.");
 }
 
-// Update animation button (GPIO0)
-void updateAnimationButton() {
-    bool currentButtonState = digitalRead(PIN_BUTTON_ANIM);
-    unsigned long now = millis();
-
-    // Debounce
-    static unsigned long lastDebounceTime = 0;
-    if ((now - lastDebounceTime) < DEBOUNCE_MS) {
-        return;
-    }
-
-    // Detect button press edge (only on press, not release)
-    bool buttonPressed = (currentButtonState == LOW);
-    bool buttonJustPressed = (buttonPressed && animButtonLastState == HIGH);
-
-    if (buttonJustPressed) {
-        lastDebounceTime = now;
-        // Cycle animation mode
-        if (animationMgr) {
-            animationMgr->cycleMode();
-        }
-    }
-
-    animButtonLastState = currentButtonState;
-}
 
 // Update button state machine
 void updateButtonStateMachine() {
@@ -325,7 +364,7 @@ void setup() {
     pinMode(PIN_BUTTON, INPUT_PULLUP);
     Serial.println("Button pin configured (GPIO39 - factory reset).");
     pinMode(PIN_BUTTON_ANIM, INPUT_PULLUP);
-    Serial.println("Button pin configured (GPIO0 - animation cycle).");
+    Serial.println("Button pin configured (GPIO0 - animation cycling).");
 
     // Initialize status LED pin
     pinMode(PIN_STATUS_LED, OUTPUT);
@@ -404,9 +443,9 @@ void setup() {
 }
 
 void loop() {
-    // Update button state machines
+    // Update button state machine
     updateButtonStateMachine();      // GPIO39: Factory reset
-    updateAnimationButton();          // GPIO0: Animation cycling
+    updateAnimationButton();         // GPIO0: Animation cycling
 
     // Update notification animations if active (highest priority)
     if (notificationMgr->isActive()) {

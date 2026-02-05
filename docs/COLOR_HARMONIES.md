@@ -24,11 +24,23 @@ Color harmonies are based on traditional color theory, using hue relationships o
 AnimationBase (abstract)
 ├── MonochromaticTwinkle (standalone, no brightness ratio)
 ├── FireAnimation (standalone)
-└── HarmonyTwinkleBase (abstract)
-    ├── ComplementaryTwinkle
-    ├── SplitComplementaryTwinkle
-    ├── TriadicTwinkle
-    └── SquareTwinkle
+├── HarmonyTwinkleBase (abstract)
+│   ├── ComplementaryTwinkle
+│   ├── SplitComplementaryTwinkle
+│   ├── TriadicTwinkle
+│   └── SquareTwinkle
+├── RunnerAnimationBase (abstract, Gaussian blob movement)
+│   ├── MonochromaticRunner
+│   ├── ComplementaryRunner
+│   ├── SplitComplementaryRunner
+│   ├── TriadicRunner
+│   └── SquareRunner
+└── RainAnimationBase (abstract, Gaussian blob fade-in-place)
+    ├── MonochromaticRain
+    ├── ComplementaryRain
+    ├── SplitComplementaryRain
+    ├── TriadicRain
+    └── SquareRain
 ```
 
 ### HarmonyTwinkleBase
@@ -119,10 +131,34 @@ Unlike harmony animations, `MonochromaticTwinkle` uses only the channel's HomeKi
 
 ## Adding New Harmonies
 
-To add a new harmony type:
+### For Twinkle Animations
+
+To add a new harmony type to twinkle animations:
 
 1. Create new class inheriting from `HarmonyTwinkleBase` (e.g., `AnalogousTwinkle`)
 2. Implement `getHarmonyOffsets()` and `getNumHarmonyHues()`
 3. Add to `AnimationMode` enum in `animation_manager.h`
 4. Add instance member in `AnimationManager` class
 5. Add switch cases in `update()`, `startCurrentAnimation()`, `renderCurrentAnimation()`, and `getModeName()`
+
+### For Runner Animations
+
+To add a new harmony type to runner animations:
+
+1. Create new class inheriting from `RunnerAnimationBase` (e.g., `AnalogousRunner`)
+2. Implement `getHarmonyOffsets()`, `getNumHarmonyHues()`, and `getName()`
+3. Optional: Override `pickRunnerColor()` for custom color selection
+4. Add to `AnimationMode` enum in `animation_manager.h`
+5. Add instance member in `AnimationManager` class
+6. Add switch cases in `update()`, `startCurrentAnimation()`, `renderCurrentAnimation()`, and `getModeName()`
+
+### For Rain Animations
+
+To add a new harmony type to rain animations:
+
+1. Create new class inheriting from `RainAnimationBase` (e.g., `AnalogousRain`)
+2. Implement `getHarmonyOffsets()`, `getNumHarmonyHues()`, and `getName()`
+3. Optional: Override `pickRaindropColor()` for custom color selection
+4. Add to `AnimationMode` enum in `animation_manager.h`
+5. Add instance member in `AnimationManager` class
+6. Add switch cases in `update()`, `startCurrentAnimation()`, `renderCurrentAnimation()`, and `getModeName()`

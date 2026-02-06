@@ -1,7 +1,7 @@
 # Makefile for homekit-matchstick-sputter
 # PlatformIO wrapper for common development tasks
 
-.PHONY: all build clean erase flash monitor flash-monitor help
+.PHONY: all build clean erase flash monitor flash-monitor test help
 
 # PlatformIO binary location
 PIO := $(HOME)/.local/bin/pio
@@ -39,6 +39,11 @@ flash-monitor: flash
 	@echo "Starting serial monitor (Ctrl+C to exit)..."
 	$(PIO) device monitor
 
+# Run native tests
+test:
+	@echo "Running native tests..."
+	$(PIO) test -e native
+
 # Show help
 help:
 	@echo "Available targets:"
@@ -48,4 +53,5 @@ help:
 	@echo "  make flash         - Flash firmware to device"
 	@echo "  make monitor       - Monitor serial output"
 	@echo "  make flash-monitor - Flash and start monitoring"
+	@echo "  make test          - Run native tests"
 	@echo "  make help          - Show this help message"

@@ -9,25 +9,25 @@ PIO := $(HOME)/.local/bin/pio
 # Default target
 all: build
 
-# Build the project
+# Build the project (pico32 only)
 build:
 	@echo "Building project..."
-	$(PIO) run
+	$(PIO) run -e pico32
 
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
-	$(PIO) run --target clean
+	$(PIO) run --target clean -e pico32
 
 # Erase flash memory on device
 erase:
 	@echo "Erasing flash memory..."
-	$(PIO) run --target erase
+	$(PIO) run --target erase -e pico32
 
 # Flash firmware to device
 flash:
 	@echo "Flashing firmware to device..."
-	$(PIO) run --target upload
+	$(PIO) run --target upload -e pico32
 
 # Monitor serial output
 monitor:

@@ -86,11 +86,7 @@ Users can change any channel's color via HomeKit.
 
 #### Button Control:
 - **GPIO39 (long press 5s)**: Factory reset with warning animation
-- **GPIO0 (short press)**: Cycle animations (HomeKit → Fire → Twinkle → HomeKit)
-
-#### Ambient Animations:
-- **Fire**: Heat-based effect using channel's hue (black → hue → white)
-- **Twinkle**: Random sparkles using channel's hue
+- **GPIO0 (short press)**: Cycle through 15 animation modes (harmonies: Monochromatic, Complementary, Split-Complementary, Triadic, Square)
 
 **Animation Requirements (all existing and future):**
 - Must use channel's HomeKit hue as primary color (90° default spacing)
@@ -104,11 +100,10 @@ Users can change any channel's color via HomeKit.
 Before committing and pushing:
 1. ☐ Code compiles without errors
 2. ☐ All 4 channels display default colors (Red, Yellow, Cyan, Purple)
-3. ☐ GPIO0 button cycles through animations (HomeKit → Fire → Twinkle)
-4. ☐ Fire animation uses channel hues (not hardcoded red)
-5. ☐ Twinkle animation sparkles with channel hues
-6. ☐ Turning off a channel in HomeKit blacks it out during animation
-7. ☐ GPIO39 long press triggers factory reset warning
+3. ☐ GPIO0 button cycles through all 15 animation modes
+4. ☐ All animations use channel hues (not hardcoded colors)
+5. ☐ Turning off a channel in HomeKit blacks it out during animation
+6. ☐ GPIO39 long press triggers factory reset warning
 
 ### Configuration
 

@@ -10,24 +10,19 @@
 // Derived classes implement getHarmonyOffsets() and getNumHarmonyHues()
 class HarmonyTwinkleBase : public AnimationBase {
 public:
-    // Tunable parameters (shared across all harmony animations)
+    // Tunable parameters (FRAME_MS, ANGLE_WIDTH, MAX_LEDS inherited from AnimationBase)
     static constexpr uint8_t TWINKLE_DENSITY = 16;   // 1/density chance per frame per LED (higher = fewer twinkles, gentler)
     static constexpr uint8_t FADE_SPEED = 8;         // How fast LEDs fade to target (0-255, higher = faster, slower)
-    static constexpr unsigned long FRAME_MS = 50;    // Frame update interval (50ms = 20fps)
     static constexpr uint8_t BASE_BRIGHTNESS = 20;   // Minimum brightness when "off"
     static constexpr uint8_t MAX_BRIGHTNESS = 255;   // Maximum brightness when fully lit
-    static constexpr int ANGLE_WIDTH = 10;           // Analogous spread range (±5° from target hue)
 
     HarmonyTwinkleBase() {
         reset();
     }
 
     // Set channel hues (called by manager when animation starts)
-    void setChannelHues(int h1, int h2, int h3, int h4) {
-        channelHue[0] = h1;
-        channelHue[1] = h2;
-        channelHue[2] = h3;
-        channelHue[3] = h4;
+    void setChannelHues(int h1, int h2, int h3, int h4) override {
+        AnimationBase::setChannelHues(h1, h2, h3, h4);
 
         // Reassign LED hues with new primary hues
         for (int ch = 0; ch < 4; ch++) {
@@ -36,7 +31,7 @@ public:
     }
 
     // Set channel brightnesses (triggers LED hue reassignment if changed)
-    void setChannelBrightnesses(int b1, int b2, int b3, int b4) {
+    void setChannelBrightnesses(int b1, int b2, int b3, int b4) override {
         int brightnesses[4] = {b1, b2, b3, b4};
         for (int ch = 0; ch < 4; ch++) {
             if (brightnesses[ch] != cachedBrightness[ch]) {
@@ -44,6 +39,7 @@ public:
                 assignLedHues(ch, brightnesses[ch]);
             }
         }
+        AnimationBase::setChannelBrightnesses(b1, b2, b3, b4);
     }
 
     void begin() override {
@@ -89,33 +85,15 @@ public:
     }
 
 protected:
-    static constexpr uint16_t MAX_LEDS = 200;
-
     // Per-LED state (0-255)
     uint8_t currentBrightness[4][MAX_LEDS];
     uint8_t targetBrightness[4][MAX_LEDS];
     uint8_t ledHue[4][MAX_LEDS];  // Pre-assigned hue per LED (FastLED 0-255)
     uint8_t ledSat[4][MAX_LEDS];  // Pre-assigned saturation per LED (0=white for primary, 255 for secondary)
 
-    // Cached channel brightness for change detection
-    int cachedBrightness[4];
-
-    // Frame timing
-    unsigned long frameAccumulator = 0;
-
     // Derived classes implement these to define the harmony
     virtual const int* getHarmonyOffsets() const = 0;  // Hue offsets from primary (0°, ...)
     virtual int getNumHarmonyHues() const = 0;         // Number of hues in harmony
-
-    // Generate analogous spread offset using normal distribution approximation
-    // Central Limit Theorem: sum of 6 uniform randoms approximates normal distribution
-    int generateSpread() {
-        int sum = 0;
-        for (int i = 0; i < 6; i++) {
-            sum += random(0, ANGLE_WIDTH + 1);
-        }
-        return (sum / 6) - (ANGLE_WIDTH / 2);  // Centered at 0
-    }
 
     // Assign LED hues based on harmony and brightness-based distribution
     // Primary hue gets 5-95% of LEDs (95% at brightness=100)

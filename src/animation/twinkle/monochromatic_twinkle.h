@@ -14,24 +14,19 @@
 // 3. Color based on channel's stored hue (from HomeKit state) with analogous spread
 class MonochromaticTwinkle : public AnimationBase {
 public:
-    // Tunable parameters
+    // Tunable parameters (FRAME_MS, ANGLE_WIDTH, MAX_LEDS inherited from AnimationBase)
     static constexpr uint8_t TWINKLE_DENSITY = 8;    // 1/density chance per frame per LED (higher = fewer twinkles)
     static constexpr uint8_t FADE_SPEED = 15;        // How fast LEDs fade to target (0-255, higher = faster)
-    static constexpr unsigned long FRAME_MS = 50;    // Frame update interval (50ms = 20fps)
     static constexpr uint8_t BASE_BRIGHTNESS = 20;   // Minimum brightness when "off"
     static constexpr uint8_t MAX_BRIGHTNESS = 255;   // Maximum brightness when fully lit
-    static constexpr int ANGLE_WIDTH = 10;           // Analogous spread range (±5° from target hue)
 
     MonochromaticTwinkle() {
         reset();
     }
 
     // Set channel hues (called by manager when animation starts)
-    void setChannelHues(int h1, int h2, int h3, int h4) {
-        channelHue[0] = h1;
-        channelHue[1] = h2;
-        channelHue[2] = h3;
-        channelHue[3] = h4;
+    void setChannelHues(int h1, int h2, int h3, int h4) override {
+        AnimationBase::setChannelHues(h1, h2, h3, h4);
     }
 
     void begin() override {
@@ -74,14 +69,9 @@ public:
     }
 
 private:
-    static constexpr uint16_t MAX_LEDS = 200;
-
     // Per-LED brightness state (0-255)
     uint8_t currentBrightness[4][MAX_LEDS];
     uint8_t targetBrightness[4][MAX_LEDS];
-
-    // Frame timing
-    unsigned long frameAccumulator = 0;
 
     // Update brightness state for all channels
     void updateState() {
@@ -107,16 +97,6 @@ private:
                 }
             }
         }
-    }
-
-    // Generate analogous spread offset using normal distribution approximation
-    // Central Limit Theorem: sum of 6 uniform randoms approximates normal distribution
-    int generateSpread() {
-        int sum = 0;
-        for (int i = 0; i < 6; i++) {
-            sum += random(0, ANGLE_WIDTH + 1);
-        }
-        return (sum / 6) - (ANGLE_WIDTH / 2);  // Centered at 0
     }
 
     // Render twinkle effect for a single channel

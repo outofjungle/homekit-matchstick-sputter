@@ -23,7 +23,6 @@ Color harmonies are based on traditional color theory, using hue relationships o
 ```
 AnimationBase (abstract)
 ├── MonochromaticTwinkle (standalone, no brightness ratio)
-├── FireAnimation (standalone)
 ├── HarmonyTwinkleBase (abstract)
 │   ├── ComplementaryTwinkle
 │   ├── SplitComplementaryTwinkle
@@ -125,7 +124,8 @@ Unlike harmony animations, `MonochromaticTwinkle` uses only the channel's HomeKi
 
 **Not Affected:**
 - MonochromaticTwinkle (doesn't use brightness ratio)
-- FireAnimation (doesn't use brightness ratio)
+- Runner animations (don't use brightness ratio)
+- Rain animations (don't use brightness ratio)
 
 **Status:** Tracked in beads issue tracker
 

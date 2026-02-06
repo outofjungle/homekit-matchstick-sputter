@@ -28,6 +28,24 @@ public:
     // Get animation name (for debugging)
     virtual const char* getName() const = 0;
 
+    // Set channel hues (called by manager when animation starts or hue changes)
+    // Default implementation - derived classes can override
+    virtual void setChannelHues(int h1, int h2, int h3, int h4) {
+        channelHue[0] = h1;
+        channelHue[1] = h2;
+        channelHue[2] = h3;
+        channelHue[3] = h4;
+    }
+
+    // Set channel brightnesses (called by manager when brightness changes)
+    // Default implementation - derived classes can override
+    virtual void setChannelBrightnesses(int b1, int b2, int b3, int b4) {
+        cachedBrightness[0] = b1;
+        cachedBrightness[1] = b2;
+        cachedBrightness[2] = b3;
+        cachedBrightness[3] = b4;
+    }
+
 protected:
     // Common constants shared across animation types
     static constexpr uint16_t MAX_LEDS = 200;
@@ -46,24 +64,6 @@ protected:
 
     // Frame timing accumulator
     unsigned long frameAccumulator = 0;
-
-    // Set channel hues (called by manager when animation starts or hue changes)
-    // Default implementation - derived classes can override
-    virtual void setChannelHues(int h1, int h2, int h3, int h4) {
-        channelHue[0] = h1;
-        channelHue[1] = h2;
-        channelHue[2] = h3;
-        channelHue[3] = h4;
-    }
-
-    // Set channel brightnesses (called by manager when brightness changes)
-    // Default implementation - derived classes can override
-    virtual void setChannelBrightnesses(int b1, int b2, int b3, int b4) {
-        cachedBrightness[0] = b1;
-        cachedBrightness[1] = b2;
-        cachedBrightness[2] = b3;
-        cachedBrightness[3] = b4;
-    }
 
     // Generate analogous spread offset using normal distribution approximation
     int generateSpread() {

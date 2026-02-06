@@ -51,7 +51,26 @@ public:
         channelService1(nullptr), channelService2(nullptr),
         channelService3(nullptr), channelService4(nullptr),
         currentMode(ANIM_NONE),
-        lastUpdateMs(0) {
+        lastUpdateMs(0),
+        currentAnimation(nullptr) {
+        // Initialize lookup table
+        animations[ANIM_NONE] = nullptr;
+        animations[ANIM_MONOCHROMATIC_RUNNER] = &monochromaticRunnerAnim;
+        animations[ANIM_COMPLEMENTARY_RUNNER] = &complementaryRunnerAnim;
+        animations[ANIM_SPLIT_COMPLEMENTARY_RUNNER] = &splitComplementaryRunnerAnim;
+        animations[ANIM_TRIADIC_RUNNER] = &triadicRunnerAnim;
+        animations[ANIM_SQUARE_RUNNER] = &squareRunnerAnim;
+        animations[ANIM_MONOCHROMATIC_RAIN] = &monochromaticRainAnim;
+        animations[ANIM_COMPLEMENTARY_RAIN] = &complementaryRainAnim;
+        animations[ANIM_SPLIT_COMPLEMENTARY_RAIN] = &splitComplementaryRainAnim;
+        animations[ANIM_TRIADIC_RAIN] = &triadicRainAnim;
+        animations[ANIM_SQUARE_RAIN] = &squareRainAnim;
+        animations[ANIM_MONOCHROMATIC] = &monochromaticAnim;
+        animations[ANIM_COMPLEMENTARY] = &complementaryAnim;
+        animations[ANIM_SPLIT_COMPLEMENTARY] = &splitComplementaryAnim;
+        animations[ANIM_TRIADIC] = &triadicAnim;
+        animations[ANIM_SQUARE] = &squareAnim;
+
         // Load saved animation mode from NVS
         loadMode();
     }
@@ -100,7 +119,7 @@ public:
 
     // Update animation state (call from loop)
     void update() {
-        if (currentMode == ANIM_NONE) {
+        if (!currentAnimation) {
             return;  // No animation active
         }
 
@@ -108,73 +127,8 @@ public:
         unsigned long deltaMs = now - lastUpdateMs;
         lastUpdateMs = now;
 
-        bool needsRender = false;
-
-        // Update current animation
-        switch (currentMode) {
-            case ANIM_MONOCHROMATIC_RUNNER:
-                needsRender = monochromaticRunnerAnim.update(deltaMs);
-                break;
-
-            case ANIM_COMPLEMENTARY_RUNNER:
-                needsRender = complementaryRunnerAnim.update(deltaMs);
-                break;
-
-            case ANIM_SPLIT_COMPLEMENTARY_RUNNER:
-                needsRender = splitComplementaryRunnerAnim.update(deltaMs);
-                break;
-
-            case ANIM_TRIADIC_RUNNER:
-                needsRender = triadicRunnerAnim.update(deltaMs);
-                break;
-
-            case ANIM_SQUARE_RUNNER:
-                needsRender = squareRunnerAnim.update(deltaMs);
-                break;
-
-            case ANIM_MONOCHROMATIC_RAIN:
-                needsRender = monochromaticRainAnim.update(deltaMs);
-                break;
-
-            case ANIM_COMPLEMENTARY_RAIN:
-                needsRender = complementaryRainAnim.update(deltaMs);
-                break;
-
-            case ANIM_SPLIT_COMPLEMENTARY_RAIN:
-                needsRender = splitComplementaryRainAnim.update(deltaMs);
-                break;
-
-            case ANIM_TRIADIC_RAIN:
-                needsRender = triadicRainAnim.update(deltaMs);
-                break;
-
-            case ANIM_SQUARE_RAIN:
-                needsRender = squareRainAnim.update(deltaMs);
-                break;
-
-            case ANIM_MONOCHROMATIC:
-                needsRender = monochromaticAnim.update(deltaMs);
-                break;
-
-            case ANIM_COMPLEMENTARY:
-                needsRender = complementaryAnim.update(deltaMs);
-                break;
-
-            case ANIM_SPLIT_COMPLEMENTARY:
-                needsRender = splitComplementaryAnim.update(deltaMs);
-                break;
-
-            case ANIM_TRIADIC:
-                needsRender = triadicAnim.update(deltaMs);
-                break;
-
-            case ANIM_SQUARE:
-                needsRender = squareAnim.update(deltaMs);
-                break;
-
-            default:
-                break;
-        }
+        // Update current animation (polymorphic dispatch)
+        bool needsRender = currentAnimation->update(deltaMs);
 
         // Render if needed
         if (needsRender) {
@@ -217,6 +171,10 @@ private:
     AnimationMode currentMode;
     unsigned long lastUpdateMs;
 
+    // Polymorphic dispatch
+    AnimationBase* animations[ANIM_COUNT];
+    AnimationBase* currentAnimation;
+
     // Animation instances
     MonochromaticRunner monochromaticRunnerAnim;
     ComplementaryRunner complementaryRunnerAnim;
@@ -255,271 +213,35 @@ private:
             savedCh4[i] = channel4[i];
         }
 
-        // Initialize animation
-        switch (currentMode) {
-            case ANIM_MONOCHROMATIC_RUNNER:
-                // Set channel hues and brightnesses from HomeKit state
-                if (channelService1 && channelService2 && channelService3 && channelService4) {
-                    monochromaticRunnerAnim.setChannelHues(
-                        channelService1->desired.hue,
-                        channelService2->desired.hue,
-                        channelService3->desired.hue,
-                        channelService4->desired.hue
-                    );
-                    monochromaticRunnerAnim.setChannelBrightnesses(
-                        channelService1->desired.brightness,
-                        channelService2->desired.brightness,
-                        channelService3->desired.brightness,
-                        channelService4->desired.brightness
-                    );
-                }
-                monochromaticRunnerAnim.begin();
-                break;
+        // Set current animation pointer
+        currentAnimation = animations[currentMode];
+        if (!currentAnimation) return;
 
-            case ANIM_COMPLEMENTARY_RUNNER:
-                // Set channel hues and brightnesses from HomeKit state
-                if (channelService1 && channelService2 && channelService3 && channelService4) {
-                    complementaryRunnerAnim.setChannelHues(
-                        channelService1->desired.hue,
-                        channelService2->desired.hue,
-                        channelService3->desired.hue,
-                        channelService4->desired.hue
-                    );
-                    complementaryRunnerAnim.setChannelBrightnesses(
-                        channelService1->desired.brightness,
-                        channelService2->desired.brightness,
-                        channelService3->desired.brightness,
-                        channelService4->desired.brightness
-                    );
-                }
-                complementaryRunnerAnim.begin();
-                break;
-
-            case ANIM_SPLIT_COMPLEMENTARY_RUNNER:
-                // Set channel hues and brightnesses from HomeKit state
-                if (channelService1 && channelService2 && channelService3 && channelService4) {
-                    splitComplementaryRunnerAnim.setChannelHues(
-                        channelService1->desired.hue,
-                        channelService2->desired.hue,
-                        channelService3->desired.hue,
-                        channelService4->desired.hue
-                    );
-                    splitComplementaryRunnerAnim.setChannelBrightnesses(
-                        channelService1->desired.brightness,
-                        channelService2->desired.brightness,
-                        channelService3->desired.brightness,
-                        channelService4->desired.brightness
-                    );
-                }
-                splitComplementaryRunnerAnim.begin();
-                break;
-
-            case ANIM_TRIADIC_RUNNER:
-                // Set channel hues and brightnesses from HomeKit state
-                if (channelService1 && channelService2 && channelService3 && channelService4) {
-                    triadicRunnerAnim.setChannelHues(
-                        channelService1->desired.hue,
-                        channelService2->desired.hue,
-                        channelService3->desired.hue,
-                        channelService4->desired.hue
-                    );
-                    triadicRunnerAnim.setChannelBrightnesses(
-                        channelService1->desired.brightness,
-                        channelService2->desired.brightness,
-                        channelService3->desired.brightness,
-                        channelService4->desired.brightness
-                    );
-                }
-                triadicRunnerAnim.begin();
-                break;
-
-            case ANIM_SQUARE_RUNNER:
-                // Set channel hues and brightnesses from HomeKit state
-                if (channelService1 && channelService2 && channelService3 && channelService4) {
-                    squareRunnerAnim.setChannelHues(
-                        channelService1->desired.hue,
-                        channelService2->desired.hue,
-                        channelService3->desired.hue,
-                        channelService4->desired.hue
-                    );
-                    squareRunnerAnim.setChannelBrightnesses(
-                        channelService1->desired.brightness,
-                        channelService2->desired.brightness,
-                        channelService3->desired.brightness,
-                        channelService4->desired.brightness
-                    );
-                }
-                squareRunnerAnim.begin();
-                break;
-
-            case ANIM_MONOCHROMATIC_RAIN:
-                // Set channel hues and brightnesses from HomeKit state
-                if (channelService1 && channelService2 && channelService3 && channelService4) {
-                    monochromaticRainAnim.setChannelHues(
-                        channelService1->desired.hue,
-                        channelService2->desired.hue,
-                        channelService3->desired.hue,
-                        channelService4->desired.hue
-                    );
-                    monochromaticRainAnim.setChannelBrightnesses(
-                        channelService1->desired.brightness,
-                        channelService2->desired.brightness,
-                        channelService3->desired.brightness,
-                        channelService4->desired.brightness
-                    );
-                }
-                monochromaticRainAnim.begin();
-                break;
-
-            case ANIM_COMPLEMENTARY_RAIN:
-                // Set channel hues and brightnesses from HomeKit state
-                if (channelService1 && channelService2 && channelService3 && channelService4) {
-                    complementaryRainAnim.setChannelHues(
-                        channelService1->desired.hue,
-                        channelService2->desired.hue,
-                        channelService3->desired.hue,
-                        channelService4->desired.hue
-                    );
-                    complementaryRainAnim.setChannelBrightnesses(
-                        channelService1->desired.brightness,
-                        channelService2->desired.brightness,
-                        channelService3->desired.brightness,
-                        channelService4->desired.brightness
-                    );
-                }
-                complementaryRainAnim.begin();
-                break;
-
-            case ANIM_SPLIT_COMPLEMENTARY_RAIN:
-                // Set channel hues and brightnesses from HomeKit state
-                if (channelService1 && channelService2 && channelService3 && channelService4) {
-                    splitComplementaryRainAnim.setChannelHues(
-                        channelService1->desired.hue,
-                        channelService2->desired.hue,
-                        channelService3->desired.hue,
-                        channelService4->desired.hue
-                    );
-                    splitComplementaryRainAnim.setChannelBrightnesses(
-                        channelService1->desired.brightness,
-                        channelService2->desired.brightness,
-                        channelService3->desired.brightness,
-                        channelService4->desired.brightness
-                    );
-                }
-                splitComplementaryRainAnim.begin();
-                break;
-
-            case ANIM_TRIADIC_RAIN:
-                // Set channel hues and brightnesses from HomeKit state
-                if (channelService1 && channelService2 && channelService3 && channelService4) {
-                    triadicRainAnim.setChannelHues(
-                        channelService1->desired.hue,
-                        channelService2->desired.hue,
-                        channelService3->desired.hue,
-                        channelService4->desired.hue
-                    );
-                    triadicRainAnim.setChannelBrightnesses(
-                        channelService1->desired.brightness,
-                        channelService2->desired.brightness,
-                        channelService3->desired.brightness,
-                        channelService4->desired.brightness
-                    );
-                }
-                triadicRainAnim.begin();
-                break;
-
-            case ANIM_SQUARE_RAIN:
-                // Set channel hues and brightnesses from HomeKit state
-                if (channelService1 && channelService2 && channelService3 && channelService4) {
-                    squareRainAnim.setChannelHues(
-                        channelService1->desired.hue,
-                        channelService2->desired.hue,
-                        channelService3->desired.hue,
-                        channelService4->desired.hue
-                    );
-                    squareRainAnim.setChannelBrightnesses(
-                        channelService1->desired.brightness,
-                        channelService2->desired.brightness,
-                        channelService3->desired.brightness,
-                        channelService4->desired.brightness
-                    );
-                }
-                squareRainAnim.begin();
-                break;
-
-            case ANIM_MONOCHROMATIC:
-                // Set channel hues from HomeKit state
-                if (channelService1 && channelService2 && channelService3 && channelService4) {
-                    monochromaticAnim.setChannelHues(
-                        channelService1->desired.hue,
-                        channelService2->desired.hue,
-                        channelService3->desired.hue,
-                        channelService4->desired.hue
-                    );
-                }
-                monochromaticAnim.begin();
-                break;
-
-            case ANIM_COMPLEMENTARY:
-                // Set channel hues from HomeKit state
-                if (channelService1 && channelService2 && channelService3 && channelService4) {
-                    complementaryAnim.setChannelHues(
-                        channelService1->desired.hue,
-                        channelService2->desired.hue,
-                        channelService3->desired.hue,
-                        channelService4->desired.hue
-                    );
-                }
-                complementaryAnim.begin();
-                break;
-
-            case ANIM_SPLIT_COMPLEMENTARY:
-                // Set channel hues from HomeKit state
-                if (channelService1 && channelService2 && channelService3 && channelService4) {
-                    splitComplementaryAnim.setChannelHues(
-                        channelService1->desired.hue,
-                        channelService2->desired.hue,
-                        channelService3->desired.hue,
-                        channelService4->desired.hue
-                    );
-                }
-                splitComplementaryAnim.begin();
-                break;
-
-            case ANIM_TRIADIC:
-                // Set channel hues from HomeKit state
-                if (channelService1 && channelService2 && channelService3 && channelService4) {
-                    triadicAnim.setChannelHues(
-                        channelService1->desired.hue,
-                        channelService2->desired.hue,
-                        channelService3->desired.hue,
-                        channelService4->desired.hue
-                    );
-                }
-                triadicAnim.begin();
-                break;
-
-            case ANIM_SQUARE:
-                // Set channel hues from HomeKit state
-                if (channelService1 && channelService2 && channelService3 && channelService4) {
-                    squareAnim.setChannelHues(
-                        channelService1->desired.hue,
-                        channelService2->desired.hue,
-                        channelService3->desired.hue,
-                        channelService4->desired.hue
-                    );
-                }
-                squareAnim.begin();
-                break;
-
-            default:
-                break;
+        // Set channel hues and brightnesses from HomeKit state (polymorphic dispatch)
+        if (channelService1 && channelService2 && channelService3 && channelService4) {
+            currentAnimation->setChannelHues(
+                channelService1->desired.hue,
+                channelService2->desired.hue,
+                channelService3->desired.hue,
+                channelService4->desired.hue
+            );
+            currentAnimation->setChannelBrightnesses(
+                channelService1->desired.brightness,
+                channelService2->desired.brightness,
+                channelService3->desired.brightness,
+                channelService4->desired.brightness
+            );
         }
 
+        // Initialize animation (polymorphic dispatch)
+        currentAnimation->begin();
         lastUpdateMs = millis();
     }
 
     void stopCurrentAnimation() {
+        // Clear current animation pointer
+        currentAnimation = nullptr;
+
         // Restore saved LED state
         for (int i = 0; i < numLedsPerChannel; i++) {
             channel1[i] = savedCh1[i];
@@ -536,148 +258,26 @@ private:
     }
 
     void renderCurrentAnimation() {
-        // Update animation hues and brightnesses from current HomeKit state (allows real-time changes)
+        if (!currentAnimation) return;
+
+        // Update animation hues and brightnesses from current HomeKit state (polymorphic dispatch)
         if (channelService1 && channelService2 && channelService3 && channelService4) {
-            int h1 = channelService1->desired.hue;
-            int h2 = channelService2->desired.hue;
-            int h3 = channelService3->desired.hue;
-            int h4 = channelService4->desired.hue;
-
-            int b1 = channelService1->desired.brightness;
-            int b2 = channelService2->desired.brightness;
-            int b3 = channelService3->desired.brightness;
-            int b4 = channelService4->desired.brightness;
-
-            switch (currentMode) {
-                case ANIM_MONOCHROMATIC_RUNNER:
-                    monochromaticRunnerAnim.setChannelHues(h1, h2, h3, h4);
-                    monochromaticRunnerAnim.setChannelBrightnesses(b1, b2, b3, b4);
-                    break;
-                case ANIM_COMPLEMENTARY_RUNNER:
-                    complementaryRunnerAnim.setChannelHues(h1, h2, h3, h4);
-                    complementaryRunnerAnim.setChannelBrightnesses(b1, b2, b3, b4);
-                    break;
-                case ANIM_SPLIT_COMPLEMENTARY_RUNNER:
-                    splitComplementaryRunnerAnim.setChannelHues(h1, h2, h3, h4);
-                    splitComplementaryRunnerAnim.setChannelBrightnesses(b1, b2, b3, b4);
-                    break;
-                case ANIM_TRIADIC_RUNNER:
-                    triadicRunnerAnim.setChannelHues(h1, h2, h3, h4);
-                    triadicRunnerAnim.setChannelBrightnesses(b1, b2, b3, b4);
-                    break;
-                case ANIM_SQUARE_RUNNER:
-                    squareRunnerAnim.setChannelHues(h1, h2, h3, h4);
-                    squareRunnerAnim.setChannelBrightnesses(b1, b2, b3, b4);
-                    break;
-                case ANIM_MONOCHROMATIC_RAIN:
-                    monochromaticRainAnim.setChannelHues(h1, h2, h3, h4);
-                    monochromaticRainAnim.setChannelBrightnesses(b1, b2, b3, b4);
-                    break;
-                case ANIM_COMPLEMENTARY_RAIN:
-                    complementaryRainAnim.setChannelHues(h1, h2, h3, h4);
-                    complementaryRainAnim.setChannelBrightnesses(b1, b2, b3, b4);
-                    break;
-                case ANIM_SPLIT_COMPLEMENTARY_RAIN:
-                    splitComplementaryRainAnim.setChannelHues(h1, h2, h3, h4);
-                    splitComplementaryRainAnim.setChannelBrightnesses(b1, b2, b3, b4);
-                    break;
-                case ANIM_TRIADIC_RAIN:
-                    triadicRainAnim.setChannelHues(h1, h2, h3, h4);
-                    triadicRainAnim.setChannelBrightnesses(b1, b2, b3, b4);
-                    break;
-                case ANIM_SQUARE_RAIN:
-                    squareRainAnim.setChannelHues(h1, h2, h3, h4);
-                    squareRainAnim.setChannelBrightnesses(b1, b2, b3, b4);
-                    break;
-                case ANIM_MONOCHROMATIC:
-                    monochromaticAnim.setChannelHues(h1, h2, h3, h4);
-                    break;
-                case ANIM_COMPLEMENTARY:
-                    complementaryAnim.setChannelHues(h1, h2, h3, h4);
-                    complementaryAnim.setChannelBrightnesses(b1, b2, b3, b4);
-                    break;
-                case ANIM_SPLIT_COMPLEMENTARY:
-                    splitComplementaryAnim.setChannelHues(h1, h2, h3, h4);
-                    splitComplementaryAnim.setChannelBrightnesses(b1, b2, b3, b4);
-                    break;
-                case ANIM_TRIADIC:
-                    triadicAnim.setChannelHues(h1, h2, h3, h4);
-                    triadicAnim.setChannelBrightnesses(b1, b2, b3, b4);
-                    break;
-                case ANIM_SQUARE:
-                    squareAnim.setChannelHues(h1, h2, h3, h4);
-                    squareAnim.setChannelBrightnesses(b1, b2, b3, b4);
-                    break;
-                default:
-                    break;
-            }
+            currentAnimation->setChannelHues(
+                channelService1->desired.hue,
+                channelService2->desired.hue,
+                channelService3->desired.hue,
+                channelService4->desired.hue
+            );
+            currentAnimation->setChannelBrightnesses(
+                channelService1->desired.brightness,
+                channelService2->desired.brightness,
+                channelService3->desired.brightness,
+                channelService4->desired.brightness
+            );
         }
 
-        // Render animation
-        switch (currentMode) {
-            case ANIM_MONOCHROMATIC_RUNNER:
-                monochromaticRunnerAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
-                break;
-
-            case ANIM_COMPLEMENTARY_RUNNER:
-                complementaryRunnerAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
-                break;
-
-            case ANIM_SPLIT_COMPLEMENTARY_RUNNER:
-                splitComplementaryRunnerAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
-                break;
-
-            case ANIM_TRIADIC_RUNNER:
-                triadicRunnerAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
-                break;
-
-            case ANIM_SQUARE_RUNNER:
-                squareRunnerAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
-                break;
-
-            case ANIM_MONOCHROMATIC_RAIN:
-                monochromaticRainAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
-                break;
-
-            case ANIM_COMPLEMENTARY_RAIN:
-                complementaryRainAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
-                break;
-
-            case ANIM_SPLIT_COMPLEMENTARY_RAIN:
-                splitComplementaryRainAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
-                break;
-
-            case ANIM_TRIADIC_RAIN:
-                triadicRainAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
-                break;
-
-            case ANIM_SQUARE_RAIN:
-                squareRainAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
-                break;
-
-            case ANIM_MONOCHROMATIC:
-                monochromaticAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
-                break;
-
-            case ANIM_COMPLEMENTARY:
-                complementaryAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
-                break;
-
-            case ANIM_SPLIT_COMPLEMENTARY:
-                splitComplementaryAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
-                break;
-
-            case ANIM_TRIADIC:
-                triadicAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
-                break;
-
-            case ANIM_SQUARE:
-                squareAnim.render(channel1, channel2, channel3, channel4, numLedsPerChannel);
-                break;
-
-            default:
-                break;
-        }
+        // Render animation (polymorphic dispatch)
+        currentAnimation->render(channel1, channel2, channel3, channel4, numLedsPerChannel);
 
         // Respect HomeKit power state: turn off channels that are OFF
         if (channelService1 && !channelService1->desired.power) {
@@ -695,25 +295,9 @@ private:
     }
 
     const char* getModeName(AnimationMode mode) const {
-        switch (mode) {
-            case ANIM_NONE: return "HomeKit";
-            case ANIM_MONOCHROMATIC_RUNNER: return "Monochromatic Runner";
-            case ANIM_COMPLEMENTARY_RUNNER: return "Complementary Runner";
-            case ANIM_SPLIT_COMPLEMENTARY_RUNNER: return "Split-Complementary Runner";
-            case ANIM_TRIADIC_RUNNER: return "Triadic Runner";
-            case ANIM_SQUARE_RUNNER: return "Square Runner";
-            case ANIM_MONOCHROMATIC_RAIN: return "Monochromatic Rain";
-            case ANIM_COMPLEMENTARY_RAIN: return "Complementary Rain";
-            case ANIM_SPLIT_COMPLEMENTARY_RAIN: return "Split-Complementary Rain";
-            case ANIM_TRIADIC_RAIN: return "Triadic Rain";
-            case ANIM_SQUARE_RAIN: return "Square Rain";
-            case ANIM_MONOCHROMATIC: return "Monochromatic Twinkle";
-            case ANIM_COMPLEMENTARY: return "Complementary Twinkle";
-            case ANIM_SPLIT_COMPLEMENTARY: return "Split-Complementary Twinkle";
-            case ANIM_TRIADIC: return "Triadic Twinkle";
-            case ANIM_SQUARE: return "Square Twinkle";
-            default: return "Unknown";
-        }
+        if (mode == ANIM_NONE) return "HomeKit";
+        if (mode < ANIM_COUNT && animations[mode]) return animations[mode]->getName();
+        return "Unknown";
     }
 
     // Load animation mode from NVS

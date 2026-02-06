@@ -131,15 +131,19 @@ Unlike harmony animations, `MonochromaticTwinkle` uses only the channel's HomeKi
 
 ## Adding New Harmonies
 
+**Note:** As of the Phase 3 refactoring, `AnimationManager` uses polymorphic dispatch instead of switch statements. Adding a new animation no longer requires modifying multiple switch cases.
+
 ### For Twinkle Animations
 
 To add a new harmony type to twinkle animations:
 
 1. Create new class inheriting from `HarmonyTwinkleBase` (e.g., `AnalogousTwinkle`)
-2. Implement `getHarmonyOffsets()` and `getNumHarmonyHues()`
+2. Implement `getHarmonyOffsets()`, `getNumHarmonyHues()`, and `getName()`
 3. Add to `AnimationMode` enum in `animation_manager.h`
-4. Add instance member in `AnimationManager` class
-5. Add switch cases in `update()`, `startCurrentAnimation()`, `renderCurrentAnimation()`, and `getModeName()`
+4. Add instance member in `AnimationManager` class (e.g., `AnalogousTwinkle analogousTwinkleAnim;`)
+5. Add to lookup table in constructor: `animations[ANIM_ANALOGOUS_TWINKLE] = &analogousTwinkleAnim;`
+
+That's it! Polymorphic dispatch handles the rest automatically.
 
 ### For Runner Animations
 
@@ -149,8 +153,8 @@ To add a new harmony type to runner animations:
 2. Implement `getHarmonyOffsets()`, `getNumHarmonyHues()`, and `getName()`
 3. Optional: Override `pickRunnerColor()` for custom color selection
 4. Add to `AnimationMode` enum in `animation_manager.h`
-5. Add instance member in `AnimationManager` class
-6. Add switch cases in `update()`, `startCurrentAnimation()`, `renderCurrentAnimation()`, and `getModeName()`
+5. Add instance member in `AnimationManager` class (e.g., `AnalogousRunner analogousRunnerAnim;`)
+6. Add to lookup table in constructor: `animations[ANIM_ANALOGOUS_RUNNER] = &analogousRunnerAnim;`
 
 ### For Rain Animations
 
@@ -160,5 +164,5 @@ To add a new harmony type to rain animations:
 2. Implement `getHarmonyOffsets()`, `getNumHarmonyHues()`, and `getName()`
 3. Optional: Override `pickRaindropColor()` for custom color selection
 4. Add to `AnimationMode` enum in `animation_manager.h`
-5. Add instance member in `AnimationManager` class
-6. Add switch cases in `update()`, `startCurrentAnimation()`, `renderCurrentAnimation()`, and `getModeName()`
+5. Add instance member in `AnimationManager` class (e.g., `AnalogousRain analogousRainAnim;`)
+6. Add to lookup table in constructor: `animations[ANIM_ANALOGOUS_RAIN] = &analogousRainAnim;`

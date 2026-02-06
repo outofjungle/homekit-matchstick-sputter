@@ -224,13 +224,16 @@ src/animation/
 
 ```
 AnimationBase (abstract)
-└── RainAnimationBase (abstract)
-    ├── MonochromaticRain (primary hue + white)
-    ├── ComplementaryRain (2 colors)
-    ├── SplitComplementaryRain (3 colors)
-    ├── TriadicRain (3 colors)
-    └── SquareRain (4 colors)
+└── MarkovBaseLayer (abstract - shared base-layer logic)
+    └── RainAnimationBase (abstract)
+        ├── MonochromaticRain (primary hue + white)
+        ├── ComplementaryRain (2 colors)
+        ├── SplitComplementaryRain (3 colors)
+        ├── TriadicRain (3 colors)
+        └── SquareRain (4 colors)
 ```
+
+**Note:** MarkovBaseLayer (introduced in Phase 2 refactoring) provides shared base-layer state and Markov chain logic used by both Rain and Runner animations.
 
 ### Derived Classes Implement
 

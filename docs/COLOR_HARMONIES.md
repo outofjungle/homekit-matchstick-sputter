@@ -28,19 +28,22 @@ AnimationBase (abstract)
 │   ├── SplitComplementaryTwinkle
 │   ├── TriadicTwinkle
 │   └── SquareTwinkle
-├── RunnerAnimationBase (abstract, Gaussian blob movement)
-│   ├── MonochromaticRunner
-│   ├── ComplementaryRunner
-│   ├── SplitComplementaryRunner
-│   ├── TriadicRunner
-│   └── SquareRunner
-└── RainAnimationBase (abstract, Gaussian blob fade-in-place)
-    ├── MonochromaticRain
-    ├── ComplementaryRain
-    ├── SplitComplementaryRain
-    ├── TriadicRain
-    └── SquareRain
+└── MarkovBaseLayer (abstract - shared base-layer logic, Phase 2 refactoring)
+    ├── RunnerAnimationBase (abstract, Gaussian blob movement)
+    │   ├── MonochromaticRunner
+    │   ├── ComplementaryRunner
+    │   ├── SplitComplementaryRunner
+    │   ├── TriadicRunner
+    │   └── SquareRunner
+    └── RainAnimationBase (abstract, Gaussian blob fade-in-place)
+        ├── MonochromaticRain
+        ├── ComplementaryRain
+        ├── SplitComplementaryRain
+        ├── TriadicRain
+        └── SquareRain
 ```
+
+**Note:** MarkovBaseLayer was extracted in Phase 2 to eliminate code duplication between Runner and Rain animations. It provides shared base-layer state and Markov chain logic.
 
 ### HarmonyTwinkleBase
 

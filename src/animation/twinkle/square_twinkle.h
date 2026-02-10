@@ -1,23 +1,27 @@
 #pragma once
 
-#include "harmony_twinkle_base.h"
+#include "twinkle_base.h"
 
 // Square Twinkle Animation
-// 4-color harmony: Square on color wheel (90° apart)
-// Example: Red (0°) + Yellow (90°) + Cyan (180°) + Magenta (270°)
-class SquareTwinkle : public HarmonyTwinkleBase {
+// 4-color harmony: Evenly spaced around color wheel (90° apart)
+// Example: Red (0°) + Yellow (90°) + Cyan (180°) + Blue-Violet (270°)
+class SquareTwinkle : public TwinkleAnimationBase
+{
 public:
-    const char* getName() const override {
+    const char *getName() const override
+    {
         return "Square Twinkle";
     }
 
 protected:
-    const int* getHarmonyOffsets() const override {
+    const int *getHarmonyOffsets() const override
+    {
         static const int offsets[] = {0, 90, 180, 270};
         return offsets;
     }
 
-    int getNumHarmonyHues() const override {
+    int getNumHarmonyHues() const override
+    {
         return 4;
     }
 };

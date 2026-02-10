@@ -15,43 +15,44 @@
 //   - Phase 2 (Rise Up): Rapid rise to brightness=255 with random saturation and harmony color
 //   - Phase 3 (Saturation Journey): Slow saturation shift toward longest path endpoint
 //   - Phase 4 (Final Crash): Rapid fade to brightness=0, rejoin base layer
-//   - Twinkle count: 3 (at brightness=100) to 8 (at brightness=0)
+//   - Twinkle count: 20 (at brightness=100) to 200 (at brightness<=5)
 //
 // Derived classes implement getHarmonyOffsets(), getNumHarmonyHues(), getName()
 class TwinkleAnimationBase : public MarkovBaseLayer
 {
 public:
     // Tunable parameters
-    static constexpr uint8_t MIN_TWINKLES = 20;         // At brightness=100 (10% of 200 LEDs)
-    static constexpr uint8_t MAX_TWINKLES = 160;        // At brightness<=10 (80% of 200 LEDs)
-    static constexpr uint8_t MAX_TWINKLE_SLOTS = 160;   // Must equal MAX_TWINKLES
-    static constexpr uint8_t CRASH_FRAMES = 2;          // Duration of rapid brightness changes
+    static constexpr uint8_t MIN_TWINKLES = 20;       // At brightness=100 (10% of 200 LEDs)
+    static constexpr uint8_t MAX_TWINKLES = 200;      // At brightness<=5 (100% of 200 LEDs)
+    static constexpr uint8_t MAX_TWINKLE_SLOTS = 200; // Must equal MAX_TWINKLES
+    static constexpr uint8_t CRASH_FRAMES = 2;        // Duration of rapid brightness changes
     static constexpr uint8_t RISE_FRAMES = 2;
     static constexpr uint8_t FINAL_CRASH_FRAMES = 2;
-    static constexpr uint8_t BRIGHTNESS_STEP = 128;     // 255 / 2 frames
-    static constexpr uint8_t SAT_STEP = 30;             // Saturation change per frame (~9 frames to traverse 255)
-    static constexpr uint8_t MAX_SPAWN_ATTEMPTS = 10;   // Collision retry limit
+    static constexpr uint8_t BRIGHTNESS_STEP = 128;   // 255 / 2 frames
+    static constexpr uint8_t SAT_STEP = 30;           // Saturation change per frame (~9 frames to traverse 255)
+    static constexpr uint8_t MAX_SPAWN_ATTEMPTS = 10; // Collision retry limit
+    static constexpr uint8_t SPAWNS_PER_FRAME = 15;  // Max new twinkles per frame
 
     // State machine
     enum TwinklePhase
     {
-        PHASE_NONE,                // Inactive (slot available)
-        PHASE_CRASH_DOWN,          // Phase 1: Rapid fade to 0
-        PHASE_RISE_UP,             // Phase 2: Rise to 255 with random sat
-        PHASE_SATURATION_JOURNEY,  // Phase 3: Slow saturation shift
-        PHASE_FINAL_CRASH          // Phase 4: Rapid fade to 0, rejoin base
+        PHASE_NONE,               // Inactive (slot available)
+        PHASE_CRASH_DOWN,         // Phase 1: Rapid fade to 0
+        PHASE_RISE_UP,            // Phase 2: Rise to 255 with random sat
+        PHASE_SATURATION_JOURNEY, // Phase 3: Slow saturation shift
+        PHASE_FINAL_CRASH         // Phase 4: Rapid fade to 0, rejoin base
     };
 
     struct TwinkleSlot
     {
-        uint16_t ledIndex;        // Which LED is twinkling
+        uint16_t ledIndex; // Which LED is twinkling
         TwinklePhase phase;
-        uint8_t hue;              // Locked harmony color (0-255)
-        uint8_t sat;              // Current saturation (0-255)
-        uint8_t targetSat;        // Target saturation (0 or 255)
-        uint8_t brightness;       // Current brightness (0-255)
-        int8_t satDirection;      // +1 toward 255, -1 toward 0
-        uint8_t frameCounter;     // Frames in current phase
+        uint8_t hue;          // Locked harmony color (0-255)
+        uint8_t sat;          // Current saturation (0-255)
+        uint8_t targetSat;    // Target saturation (0 or 255)
+        uint8_t brightness;   // Current brightness (0-255)
+        int8_t satDirection;  // +1 toward 255, -1 toward 0
+        uint8_t frameCounter; // Frames in current phase
     };
 
     TwinkleAnimationBase()
@@ -242,40 +243,47 @@ private:
                 }
             }
 
-            // Try to spawn new twinkles
-            trySpawnTwinkle(ch);
+            // Spawn twinkles to fill deficit toward target count
+            spawnTwinklesForChannel(ch);
         }
     }
 
-    // Try to spawn a new twinkle on the given channel
-    void trySpawnTwinkle(int ch)
+    // Spawn as many twinkles as needed to reach the target count for the channel
+    void spawnTwinklesForChannel(int ch)
     {
-        // Linear interpolation: brightness<=10 -> MAX_TWINKLES, brightness=100 -> MIN_TWINKLES
-        int b = cachedBrightness[ch] < 10 ? 10 : cachedBrightness[ch];
-        int maxTwinkles = MAX_TWINKLES - ((b - 10) * (MAX_TWINKLES - MIN_TWINKLES)) / 90;
+        // Linear interpolation: brightness<=5 -> MAX_TWINKLES, brightness=100 -> MIN_TWINKLES
+        int b = cachedBrightness[ch] < 5 ? 5 : cachedBrightness[ch];
+        int maxTwinkles = MAX_TWINKLES - ((b - 5) * (MAX_TWINKLES - MIN_TWINKLES)) / 95;
 
-        if (countActiveTwinkles(ch) >= maxTwinkles)
-            return;
+        int deficit = maxTwinkles - countActiveTwinkles(ch);
+        int toSpawn = min(deficit, (int)SPAWNS_PER_FRAME); // Cap per-frame spawns
 
-        // Find a random non-twinkling LED and a free slot
-        for (int attempt = 0; attempt < MAX_SPAWN_ATTEMPTS; attempt++)
+        for (int spawn = 0; spawn < toSpawn; spawn++)
         {
-            uint16_t ledIndex = random(MAX_LEDS);
-            if (!isLedTwinkling(ch, ledIndex))
+            // Find a random non-twinkling LED and a free slot
+            bool spawned = false;
+            for (int attempt = 0; attempt < MAX_SPAWN_ATTEMPTS; attempt++)
             {
-                for (int t = 0; t < MAX_TWINKLE_SLOTS; t++)
+                uint16_t ledIndex = random(MAX_LEDS);
+                if (!isLedTwinkling(ch, ledIndex))
                 {
-                    if (twinkles[ch][t].phase == PHASE_NONE)
+                    for (int t = 0; t < MAX_TWINKLE_SLOTS; t++)
                     {
-                        twinkles[ch][t].ledIndex = ledIndex;
-                        twinkles[ch][t].phase = PHASE_CRASH_DOWN;
-                        twinkles[ch][t].frameCounter = 0;
-                        twinkles[ch][t].brightness = baseBrightness[ch][ledIndex];
-                        break;
+                        if (twinkles[ch][t].phase == PHASE_NONE)
+                        {
+                            twinkles[ch][t].ledIndex = ledIndex;
+                            twinkles[ch][t].phase = PHASE_CRASH_DOWN;
+                            twinkles[ch][t].frameCounter = 0;
+                            twinkles[ch][t].brightness = baseBrightness[ch][ledIndex];
+                            spawned = true;
+                            break;
+                        }
                     }
+                    break;
                 }
-                break;
             }
+            if (!spawned)
+                break; // No free LEDs found, stop trying
         }
     }
 

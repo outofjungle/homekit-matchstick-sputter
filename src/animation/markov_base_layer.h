@@ -64,17 +64,17 @@ protected:
         {
             for (int i = 0; i < MAX_LEDS; i++)
             {
-                hueOffset[ch][i] = 0;
-                hueDir[ch][i] = 0;
-                baseBrightness[ch][i] = BASE_BRIGHTNESS;
-                brightDir[ch][i] = 0;
+                hueOffset[ch][i] = random(-ANGLE_WIDTH / 2, ANGLE_WIDTH / 2 + 1);
+                hueDir[ch][i] = random(3) - 1;
+                baseBrightness[ch][i] = random(BASE_BRIGHTNESS, MAX_BRIGHTNESS + 1);
+                brightDir[ch][i] = random(3) - 1;
 
                 // Sample saturation from power law distribution, clamped to [MIN_SATURATION, 255]
                 // sat = 255 * (1 - u^α), α=4 skews heavily toward high saturation
                 float u = random(1000) / 1000.0f;
                 float power_sample = powf(u, POWER_LAW_ALPHA);
                 baseSaturation[ch][i] = constrain((int)((1.0f - power_sample) * 255), MIN_SATURATION, 255);
-                satDir[ch][i] = 0;
+                satDir[ch][i] = random(3) - 1;
             }
             cachedBrightness[ch] = 100;
         }

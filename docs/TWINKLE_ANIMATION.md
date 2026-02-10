@@ -57,11 +57,11 @@ The LED rapidly fades back to **brightness = 0**, completing the twinkle cycle.
 
 | Phase | Duration | Speed |
 |-------|----------|-------|
-| Phase 1: Crash Down | 0.25s | Rapid |
-| Phase 2: Rise Up | 0.25s | Rapid |
-| Phase 3: Saturation Journey | 2-5s | Slow |
-| Phase 4: Final Crash | 0.25s | Rapid |
-| **Total cycle** | **~3-6s** | |
+| Phase 1: Crash Down | 0.15s | Rapid |
+| Phase 2: Rise Up | 0.15s | Rapid |
+| Phase 3: Saturation Journey | ~0.65s | Quick |
+| Phase 4: Final Crash | 0.15s | Rapid |
+| **Total cycle** | **~1s** | |
 
 ## Twinkle Density
 

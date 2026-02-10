@@ -18,6 +18,9 @@ public:
     static constexpr uint8_t BASE_BRIGHTNESS = 40;   // Min breathing brightness
     static constexpr uint8_t MAX_BRIGHTNESS = 220;   // Max breathing brightness
 
+    // Minimum saturation for base layer (0-255, 128 = 50%)
+    static constexpr uint8_t MIN_SATURATION = 128;
+
     // Power law distribution parameter for saturation
     // Target: sat = 255 * (1 - u^α) where u ~ Uniform(0,1)
     // Higher α = stronger skew toward high saturation
@@ -53,6 +56,29 @@ protected:
     int8_t brightDir[4][MAX_LEDS];       // Last brightness move direction: -1, 0, +1
     uint8_t baseSaturation[4][MAX_LEDS]; // Current saturation (0-255)
     int8_t satDir[4][MAX_LEDS];          // Last saturation move direction: -1, 0, +1
+
+    // Initialize all base layer per-LED state (call from derived class reset())
+    void resetBaseLayer()
+    {
+        for (int ch = 0; ch < 4; ch++)
+        {
+            for (int i = 0; i < MAX_LEDS; i++)
+            {
+                hueOffset[ch][i] = 0;
+                hueDir[ch][i] = 0;
+                baseBrightness[ch][i] = BASE_BRIGHTNESS;
+                brightDir[ch][i] = 0;
+
+                // Sample saturation from power law distribution, clamped to [MIN_SATURATION, 255]
+                // sat = 255 * (1 - u^α), α=4 skews heavily toward high saturation
+                float u = random(1000) / 1000.0f;
+                float power_sample = powf(u, POWER_LAW_ALPHA);
+                baseSaturation[ch][i] = constrain((int)((1.0f - power_sample) * 255), MIN_SATURATION, 255);
+                satDir[ch][i] = 0;
+            }
+            cachedBrightness[ch] = 100;
+        }
+    }
 
     // Derived classes implement these to define the harmony
     virtual const int *getHarmonyOffsets() const = 0; // Hue offsets from primary (0°, ...)
@@ -165,13 +191,13 @@ protected:
                 {
                     nextSatDir = markovTransitionSaturationBiased(-1, 255);
                 }
-                else if (baseSaturation[ch][i] <= 0 && nextSatDir < 0)
+                else if (baseSaturation[ch][i] <= MIN_SATURATION && nextSatDir < 0)
                 {
-                    nextSatDir = markovTransitionSaturationBiased(1, 0);
+                    nextSatDir = markovTransitionSaturationBiased(1, MIN_SATURATION);
                 }
 
                 satDir[ch][i] = nextSatDir;
-                baseSaturation[ch][i] = constrain(baseSaturation[ch][i] + nextSatDir * 2, 0, 255);
+                baseSaturation[ch][i] = constrain(baseSaturation[ch][i] + nextSatDir * 2, MIN_SATURATION, 255);
             }
         }
     }

@@ -22,14 +22,14 @@ class TwinkleAnimationBase : public MarkovBaseLayer
 {
 public:
     // Tunable parameters
-    static constexpr uint8_t MIN_TWINKLES = 3;          // At brightness=100
-    static constexpr uint8_t MAX_TWINKLES = 8;          // At brightness=0
-    static constexpr uint8_t MAX_TWINKLE_SLOTS = 8;     // Must equal MAX_TWINKLES
-    static constexpr uint8_t CRASH_FRAMES = 5;          // Duration of rapid brightness changes
-    static constexpr uint8_t RISE_FRAMES = 5;
-    static constexpr uint8_t FINAL_CRASH_FRAMES = 5;
-    static constexpr uint8_t BRIGHTNESS_STEP = 51;      // 255 / 5 frames
-    static constexpr uint8_t SAT_STEP = 2;              // Saturation change per frame
+    static constexpr uint8_t MIN_TWINKLES = 30;         // At brightness=100 (~15% of 200 LEDs)
+    static constexpr uint8_t MAX_TWINKLES = 50;         // At brightness=0 (~25% of 200 LEDs)
+    static constexpr uint8_t MAX_TWINKLE_SLOTS = 50;    // Must equal MAX_TWINKLES
+    static constexpr uint8_t CRASH_FRAMES = 2;          // Duration of rapid brightness changes
+    static constexpr uint8_t RISE_FRAMES = 2;
+    static constexpr uint8_t FINAL_CRASH_FRAMES = 2;
+    static constexpr uint8_t BRIGHTNESS_STEP = 128;     // 255 / 2 frames
+    static constexpr uint8_t SAT_STEP = 30;             // Saturation change per frame (~9 frames to traverse 255)
     static constexpr uint8_t MAX_SPAWN_ATTEMPTS = 10;   // Collision retry limit
 
     // State machine
@@ -99,25 +99,10 @@ public:
 
     void reset() override
     {
-        // Initialize base layer state
+        resetBaseLayer();
+
         for (int ch = 0; ch < 4; ch++)
         {
-            for (int i = 0; i < MAX_LEDS; i++)
-            {
-                hueOffset[ch][i] = 0;
-                hueDir[ch][i] = 0;
-                baseBrightness[ch][i] = BASE_BRIGHTNESS;
-                brightDir[ch][i] = 0;
-
-                // Initialize saturation from power law distribution
-                float u = random(1000) / 1000.0f;
-                float power_sample = powf(u, POWER_LAW_ALPHA);
-                float inverted = 1.0f - power_sample;
-                baseSaturation[ch][i] = (uint8_t)(inverted * 255);
-                satDir[ch][i] = 0;
-            }
-            cachedBrightness[ch] = 100; // Default to full brightness
-
             // Deactivate all twinkle slots
             for (int t = 0; t < MAX_TWINKLE_SLOTS; t++)
             {

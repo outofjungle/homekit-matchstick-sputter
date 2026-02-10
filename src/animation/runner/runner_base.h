@@ -85,27 +85,10 @@ public:
         // Precompute Gaussian blend LUT
         gaussianLUT.compute(GAUSSIAN_VARIANCE);
 
-        // Initialize base layer state
+        resetBaseLayer();
+
         for (int ch = 0; ch < 4; ch++)
         {
-            for (int i = 0; i < MAX_LEDS; i++)
-            {
-                hueOffset[ch][i] = 0;
-                hueDir[ch][i] = 0;
-                baseBrightness[ch][i] = BASE_BRIGHTNESS;
-                brightDir[ch][i] = 0;
-
-                // Initialize saturation from power law distribution
-                // Sample: sat = 255 * (1 - u^α) where u ~ Uniform(0,1)
-                // α=4 gives ~68% at high saturation, ~7% at very low
-                float u = random(1000) / 1000.0f;  // Uniform [0,1)
-                float power_sample = powf(u, POWER_LAW_ALPHA);  // u^4
-                float inverted = 1.0f - power_sample;
-                baseSaturation[ch][i] = (uint8_t)(inverted * 255);
-                satDir[ch][i] = 0;
-            }
-            cachedBrightness[ch] = 100; // Default to full brightness
-
             // Deactivate all runners
             for (int r = 0; r < MAX_RUNNER_SLOTS; r++)
             {

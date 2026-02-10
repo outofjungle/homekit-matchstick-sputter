@@ -30,8 +30,9 @@ public:
     static constexpr uint8_t FINAL_CRASH_FRAMES = 2;
     static constexpr uint8_t BRIGHTNESS_STEP = 128;   // 255 / 2 frames
     static constexpr uint8_t SAT_STEP = 30;           // Saturation change per frame (~9 frames to traverse 255)
-    static constexpr uint8_t MAX_SPAWN_ATTEMPTS = 10; // Collision retry limit
-    static constexpr uint8_t SPAWNS_PER_FRAME = 15;  // Max new twinkles per frame
+    static constexpr uint8_t MAX_SPAWN_ATTEMPTS = 10;          // Collision retry limit
+    static constexpr uint8_t SPAWNS_PER_FRAME = 15;            // Max new twinkles per frame (steady-state cap)
+    static constexpr uint16_t RAMP_FRAMES = 10000 / FRAME_MS; // Frames to ramp from 0 to target density (~10s)
 
     // State machine
     enum TwinklePhase
@@ -111,6 +112,7 @@ public:
                 twinkles[ch][t].ledIndex = 0;
                 twinkles[ch][t].frameCounter = 0;
             }
+            rampFrame[ch] = 0;
         }
         frameAccumulator = 0;
     }
@@ -118,6 +120,7 @@ public:
 protected:
     // Twinkle slots (slot-based, not per-LED — saves memory vs [4][MAX_LEDS])
     TwinkleSlot twinkles[4][MAX_TWINKLE_SLOTS];
+    uint16_t rampFrame[4]; // Frames elapsed since reset per channel, saturates at RAMP_FRAMES
 
 private:
     // Check if any active slot is using this LED index
@@ -243,6 +246,10 @@ private:
                 }
             }
 
+            // Advance ramp counter (saturates at RAMP_FRAMES)
+            if (rampFrame[ch] < RAMP_FRAMES)
+                rampFrame[ch]++;
+
             // Spawn twinkles to fill deficit toward target count
             spawnTwinklesForChannel(ch);
         }
@@ -255,7 +262,10 @@ private:
         int b = cachedBrightness[ch] < 5 ? 5 : cachedBrightness[ch];
         int maxTwinkles = MAX_TWINKLES - ((b - 5) * (MAX_TWINKLES - MIN_TWINKLES)) / 95;
 
-        int deficit = maxTwinkles - countActiveTwinkles(ch);
+        // Ramp effective target from 0 to maxTwinkles over RAMP_FRAMES to avoid synchronized startup
+        int effectiveTarget = (int)((long)maxTwinkles * rampFrame[ch] / RAMP_FRAMES);
+
+        int deficit = effectiveTarget - countActiveTwinkles(ch);
         int toSpawn = min(deficit, (int)SPAWNS_PER_FRAME); // Cap per-frame spawns
 
         for (int spawn = 0; spawn < toSpawn; spawn++)

@@ -17,11 +17,13 @@
 #include "rain/split_complementary_rain.h"
 #include "rain/triadic_rain.h"
 #include "rain/square_rain.h"
+#include "base/base_only.h"
 #include "../led_channel.h"
 
 // Animation modes
 enum AnimationMode {
     ANIM_NONE,                  // HomeKit control (normal operation)
+    ANIM_BASE,                  // Base layer only (no overlay)
     ANIM_MONOCHROMATIC_RUNNER,  // Monochromatic runner (black/white)
     ANIM_COMPLEMENTARY_RUNNER,  // Complementary runner (2 colors)
     ANIM_SPLIT_COMPLEMENTARY_RUNNER, // Split-complementary runner (3 colors)
@@ -181,6 +183,7 @@ private:
             case ANIM_SPLIT_COMPLEMENTARY:        return new SplitComplementaryTwinkle();
             case ANIM_TRIADIC:                    return new TriadicTwinkle();
             case ANIM_SQUARE:                     return new SquareTwinkle();
+            case ANIM_BASE:                       return new BaseOnlyAnimation();
             default:                              return nullptr;
         }
     }
@@ -306,6 +309,7 @@ private:
             case ANIM_SPLIT_COMPLEMENTARY:        return "Split-Complementary Twinkle";
             case ANIM_TRIADIC:                    return "Triadic Twinkle";
             case ANIM_SQUARE:                     return "Square Twinkle";
+            case ANIM_BASE:                       return "Base";
             default:                              return "Unknown";
         }
     }

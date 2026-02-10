@@ -22,9 +22,9 @@ class TwinkleAnimationBase : public MarkovBaseLayer
 {
 public:
     // Tunable parameters
-    static constexpr uint8_t MIN_TWINKLES = 30;         // At brightness=100 (~15% of 200 LEDs)
-    static constexpr uint8_t MAX_TWINKLES = 50;         // At brightness=0 (~25% of 200 LEDs)
-    static constexpr uint8_t MAX_TWINKLE_SLOTS = 50;    // Must equal MAX_TWINKLES
+    static constexpr uint8_t MIN_TWINKLES = 20;         // At brightness=100 (10% of 200 LEDs)
+    static constexpr uint8_t MAX_TWINKLES = 160;        // At brightness<=10 (80% of 200 LEDs)
+    static constexpr uint8_t MAX_TWINKLE_SLOTS = 160;   // Must equal MAX_TWINKLES
     static constexpr uint8_t CRASH_FRAMES = 2;          // Duration of rapid brightness changes
     static constexpr uint8_t RISE_FRAMES = 2;
     static constexpr uint8_t FINAL_CRASH_FRAMES = 2;
@@ -110,7 +110,6 @@ public:
                 twinkles[ch][t].ledIndex = 0;
                 twinkles[ch][t].frameCounter = 0;
             }
-            framesSinceSpawn[ch] = 0;
         }
         frameAccumulator = 0;
     }
@@ -118,7 +117,6 @@ public:
 protected:
     // Twinkle slots (slot-based, not per-LED — saves memory vs [4][MAX_LEDS])
     TwinkleSlot twinkles[4][MAX_TWINKLE_SLOTS];
-    uint16_t framesSinceSpawn[4]; // Per channel, for spawn probability
 
 private:
     // Check if any active slot is using this LED index
@@ -245,7 +243,6 @@ private:
             }
 
             // Try to spawn new twinkles
-            framesSinceSpawn[ch]++;
             trySpawnTwinkle(ch);
         }
     }
@@ -253,28 +250,19 @@ private:
     // Try to spawn a new twinkle on the given channel
     void trySpawnTwinkle(int ch)
     {
-        // Calculate max twinkles based on brightness (inverted: low brightness = more twinkles)
-        int maxTwinkles = MAX_TWINKLES - (cachedBrightness[ch] * (MAX_TWINKLES - MIN_TWINKLES)) / 100;
+        // Linear interpolation: brightness<=10 -> MAX_TWINKLES, brightness=100 -> MIN_TWINKLES
+        int b = cachedBrightness[ch] < 10 ? 10 : cachedBrightness[ch];
+        int maxTwinkles = MAX_TWINKLES - ((b - 10) * (MAX_TWINKLES - MIN_TWINKLES)) / 90;
 
         if (countActiveTwinkles(ch) >= maxTwinkles)
-            return; // Already at capacity
-
-        // Calculate spawn probability based on time since last spawn
-        int targetSpawnInterval = MAX_LEDS / maxTwinkles;
-        int spawnChance = (framesSinceSpawn[ch] * 100) / targetSpawnInterval;
-        if (spawnChance > 100)
-            spawnChance = 100;
-
-        if (random(100) >= spawnChance)
             return;
 
-        // Find a random non-twinkling LED
+        // Find a random non-twinkling LED and a free slot
         for (int attempt = 0; attempt < MAX_SPAWN_ATTEMPTS; attempt++)
         {
             uint16_t ledIndex = random(MAX_LEDS);
             if (!isLedTwinkling(ch, ledIndex))
             {
-                // Find a free slot
                 for (int t = 0; t < MAX_TWINKLE_SLOTS; t++)
                 {
                     if (twinkles[ch][t].phase == PHASE_NONE)
@@ -283,7 +271,6 @@ private:
                         twinkles[ch][t].phase = PHASE_CRASH_DOWN;
                         twinkles[ch][t].frameCounter = 0;
                         twinkles[ch][t].brightness = baseBrightness[ch][ledIndex];
-                        framesSinceSpawn[ch] = 0;
                         break;
                     }
                 }

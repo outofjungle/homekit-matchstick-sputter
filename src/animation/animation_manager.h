@@ -53,26 +53,15 @@ public:
         currentMode(ANIM_NONE),
         lastUpdateMs(0),
         currentAnimation(nullptr) {
-        // Initialize lookup table
-        animations[ANIM_NONE] = nullptr;
-        animations[ANIM_MONOCHROMATIC_RUNNER] = &monochromaticRunnerAnim;
-        animations[ANIM_COMPLEMENTARY_RUNNER] = &complementaryRunnerAnim;
-        animations[ANIM_SPLIT_COMPLEMENTARY_RUNNER] = &splitComplementaryRunnerAnim;
-        animations[ANIM_TRIADIC_RUNNER] = &triadicRunnerAnim;
-        animations[ANIM_SQUARE_RUNNER] = &squareRunnerAnim;
-        animations[ANIM_MONOCHROMATIC_RAIN] = &monochromaticRainAnim;
-        animations[ANIM_COMPLEMENTARY_RAIN] = &complementaryRainAnim;
-        animations[ANIM_SPLIT_COMPLEMENTARY_RAIN] = &splitComplementaryRainAnim;
-        animations[ANIM_TRIADIC_RAIN] = &triadicRainAnim;
-        animations[ANIM_SQUARE_RAIN] = &squareRainAnim;
-        animations[ANIM_MONOCHROMATIC] = &monochromaticAnim;
-        animations[ANIM_COMPLEMENTARY] = &complementaryAnim;
-        animations[ANIM_SPLIT_COMPLEMENTARY] = &splitComplementaryAnim;
-        animations[ANIM_TRIADIC] = &triadicAnim;
-        animations[ANIM_SQUARE] = &squareAnim;
-
         // Load saved animation mode from NVS
         loadMode();
+    }
+
+    ~AnimationManager() {
+        if (currentAnimation) {
+            delete currentAnimation;
+            currentAnimation = nullptr;
+        }
     }
 
     // Set channel service pointers (call after channel services are created)
@@ -171,26 +160,30 @@ private:
     AnimationMode currentMode;
     unsigned long lastUpdateMs;
 
-    // Polymorphic dispatch
-    AnimationBase* animations[ANIM_COUNT];
+    // Current animation (lazily instantiated, owned by this manager)
     AnimationBase* currentAnimation;
 
-    // Animation instances
-    MonochromaticRunner monochromaticRunnerAnim;
-    ComplementaryRunner complementaryRunnerAnim;
-    SplitComplementaryRunner splitComplementaryRunnerAnim;
-    TriadicRunner triadicRunnerAnim;
-    SquareRunner squareRunnerAnim;
-    MonochromaticRain monochromaticRainAnim;
-    ComplementaryRain complementaryRainAnim;
-    SplitComplementaryRain splitComplementaryRainAnim;
-    TriadicRain triadicRainAnim;
-    SquareRain squareRainAnim;
-    MonochromaticTwinkle monochromaticAnim;
-    ComplementaryTwinkle complementaryAnim;
-    SplitComplementaryTwinkle splitComplementaryAnim;
-    TriadicTwinkle triadicAnim;
-    SquareTwinkle squareAnim;
+    // Factory: allocate a fresh animation for the given mode
+    AnimationBase* createAnimation(AnimationMode mode) {
+        switch (mode) {
+            case ANIM_MONOCHROMATIC_RUNNER:       return new MonochromaticRunner();
+            case ANIM_COMPLEMENTARY_RUNNER:       return new ComplementaryRunner();
+            case ANIM_SPLIT_COMPLEMENTARY_RUNNER: return new SplitComplementaryRunner();
+            case ANIM_TRIADIC_RUNNER:             return new TriadicRunner();
+            case ANIM_SQUARE_RUNNER:              return new SquareRunner();
+            case ANIM_MONOCHROMATIC_RAIN:         return new MonochromaticRain();
+            case ANIM_COMPLEMENTARY_RAIN:         return new ComplementaryRain();
+            case ANIM_SPLIT_COMPLEMENTARY_RAIN:   return new SplitComplementaryRain();
+            case ANIM_TRIADIC_RAIN:               return new TriadicRain();
+            case ANIM_SQUARE_RAIN:                return new SquareRain();
+            case ANIM_MONOCHROMATIC:              return new MonochromaticTwinkle();
+            case ANIM_COMPLEMENTARY:              return new ComplementaryTwinkle();
+            case ANIM_SPLIT_COMPLEMENTARY:        return new SplitComplementaryTwinkle();
+            case ANIM_TRIADIC:                    return new TriadicTwinkle();
+            case ANIM_SQUARE:                     return new SquareTwinkle();
+            default:                              return nullptr;
+        }
+    }
 
     // Storage for saved LED state (when entering animation mode)
     CRGB savedCh1[200];
@@ -213,8 +206,8 @@ private:
             savedCh4[i] = channel4[i];
         }
 
-        // Set current animation pointer
-        currentAnimation = animations[currentMode];
+        // Instantiate the new animation
+        currentAnimation = createAnimation(currentMode);
         if (!currentAnimation) return;
 
         // Set channel hues and brightnesses from HomeKit state (polymorphic dispatch)
@@ -239,7 +232,8 @@ private:
     }
 
     void stopCurrentAnimation() {
-        // Clear current animation pointer
+        // Delete the current animation instance (lazy instantiation)
+        delete currentAnimation;
         currentAnimation = nullptr;
 
         // Restore saved LED state
@@ -295,9 +289,25 @@ private:
     }
 
     const char* getModeName(AnimationMode mode) const {
-        if (mode == ANIM_NONE) return "HomeKit";
-        if (mode < ANIM_COUNT && animations[mode]) return animations[mode]->getName();
-        return "Unknown";
+        switch (mode) {
+            case ANIM_NONE:                       return "HomeKit";
+            case ANIM_MONOCHROMATIC_RUNNER:       return "Monochromatic Runner";
+            case ANIM_COMPLEMENTARY_RUNNER:       return "Complementary Runner";
+            case ANIM_SPLIT_COMPLEMENTARY_RUNNER: return "Split-Complementary Runner";
+            case ANIM_TRIADIC_RUNNER:             return "Triadic Runner";
+            case ANIM_SQUARE_RUNNER:              return "Square Runner";
+            case ANIM_MONOCHROMATIC_RAIN:         return "Monochromatic Rain";
+            case ANIM_COMPLEMENTARY_RAIN:         return "Complementary Rain";
+            case ANIM_SPLIT_COMPLEMENTARY_RAIN:   return "Split-Complementary Rain";
+            case ANIM_TRIADIC_RAIN:               return "Triadic Rain";
+            case ANIM_SQUARE_RAIN:                return "Square Rain";
+            case ANIM_MONOCHROMATIC:              return "Monochromatic Twinkle";
+            case ANIM_COMPLEMENTARY:              return "Complementary Twinkle";
+            case ANIM_SPLIT_COMPLEMENTARY:        return "Split-Complementary Twinkle";
+            case ANIM_TRIADIC:                    return "Triadic Twinkle";
+            case ANIM_SQUARE:                     return "Square Twinkle";
+            default:                              return "Unknown";
+        }
     }
 
     // Load animation mode from NVS

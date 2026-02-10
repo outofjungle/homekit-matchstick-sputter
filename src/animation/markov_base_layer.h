@@ -18,12 +18,41 @@ public:
     static constexpr uint8_t BASE_BRIGHTNESS = 40;   // Min breathing brightness
     static constexpr uint8_t MAX_BRIGHTNESS = 220;   // Max breathing brightness
 
+    // Power law distribution parameter for saturation
+    // Target: sat = 255 * (1 - u^α) where u ~ Uniform(0,1)
+    // Higher α = stronger skew toward high saturation
+    static constexpr float POWER_LAW_ALPHA = 4.0f;
+
+    // Pre-computed bias lookup table for saturation random walk
+    // Positive = bias toward increasing saturation
+    // Based on power law PDF: ~68% at high saturation (200-255), ~7% very low (0-63)
+    static constexpr int8_t SAT_BIAS_TABLE[256] = {
+          0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   1,   1,   1,   1,
+          1,   1,   1,   1,   1,   1,   1,   2,   2,   2,   2,   2,   2,   2,   2,   2,
+          2,   2,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   4,   4,   4,
+          4,   4,   4,   4,   4,   4,   4,   4,   5,   5,   5,   5,   5,   5,   5,   5,
+          5,   5,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   7,   7,   7,
+          7,   7,   7,   7,   7,   7,   7,   8,   8,   8,   8,   8,   8,   8,   8,   8,
+          8,   9,   9,   9,   9,   9,   9,   9,   9,   9,   9,  10,  10,  10,  10,  10,
+         10,  10,  10,  10,  10,  11,  11,  11,  11,  11,  11,  11,  11,  11,  12,  12,
+         12,  12,  12,  12,  12,  12,  12,  12,  13,  13,  13,  13,  13,  13,  13,  13,
+         13,  14,  14,  14,  14,  14,  14,  14,  14,  14,  15,  15,  15,  15,  15,  15,
+         15,  15,  15,  16,  16,  16,  16,  16,  16,  16,  16,  16,  17,  17,  17,  17,
+         17,  17,  17,  17,  18,  18,  18,  18,  18,  18,  18,  18,  18,  19,  19,  19,
+         19,  19,  19,  19,  19,  20,  20,  20,  20,  20,  20,  20,  21,  21,  21,  21,
+         21,  21,  21,  21,  22,  22,  22,  22,  22,  22,  22,  23,  23,  23,  23,  23,
+         23,  23,  24,  24,  24,  24,  24,  24,  25,  25,  25,  25,  25,  25,  26,  26,
+         26,  26,  26,  26,  27,  27,  27,  27,  27,  28,  28,  28,  28,  29,  29,  30,
+    };
+
 protected:
     // Per-LED base state (4 channels × MAX_LEDS)
     int8_t hueOffset[4][MAX_LEDS];       // Current offset from channel hue (-ANGLE_WIDTH/2 to +ANGLE_WIDTH/2)
     int8_t hueDir[4][MAX_LEDS];          // Last hue move direction: -1, 0, +1
     uint8_t baseBrightness[4][MAX_LEDS]; // Current base brightness
     int8_t brightDir[4][MAX_LEDS];       // Last brightness move direction: -1, 0, +1
+    uint8_t baseSaturation[4][MAX_LEDS]; // Current saturation (0-255)
+    int8_t satDir[4][MAX_LEDS];          // Last saturation move direction: -1, 0, +1
 
     // Derived classes implement these to define the harmony
     virtual const int *getHarmonyOffsets() const = 0; // Hue offsets from primary (0°, ...)
@@ -41,6 +70,44 @@ protected:
         h = map(hue360, 0, 360, 0, 255);
         s = (offsets[idx] == 0) ? PRIMARY_HUE_SAT : 255; // Desaturate primary hue
         v = 255;
+    }
+
+    // Markov transition with power-law-based bias for saturation
+    int8_t markovTransitionSaturationBiased(int8_t currentDir, uint8_t currentSat)
+    {
+        int8_t bias = SAT_BIAS_TABLE[currentSat];
+        int roll = random(100);
+
+        // If no prior direction, use bias to determine initial move
+        if (currentDir == 0)
+        {
+            // Bias toward higher saturation (table values are positive = move up)
+            if (roll < 40 + bias)
+                return 1;  // Move toward higher saturation
+            if (roll < 70)
+                return 0;  // Stay stationary
+            return -1;     // Move toward lower saturation
+        }
+
+        // Apply momentum (60% chance to continue) + bias adjustment
+        if (currentDir > 0)
+        {
+            // Currently increasing
+            if (roll < 60 + bias / 2)
+                return 1;  // Continue increasing
+            if (roll < 85)
+                return 0;  // Stop
+            return -1;     // Reverse
+        }
+        else
+        {
+            // Currently decreasing
+            if (roll < 60 - bias / 2)
+                return -1; // Continue decreasing
+            if (roll < 85)
+                return 0;  // Stop
+            return 1;      // Reverse
+        }
     }
 
     // Update base layer undulations (called every frame by derived classes)
@@ -89,6 +156,22 @@ protected:
                 brightDir[ch][i] = nextBrightDir;
                 baseBrightness[ch][i] += nextBrightDir * 2; // Step by 2
                 baseBrightness[ch][i] = constrain(baseBrightness[ch][i], BASE_BRIGHTNESS, MAX_BRIGHTNESS);
+
+                // Saturation random walk (power-law-biased)
+                int8_t nextSatDir = markovTransitionSaturationBiased(satDir[ch][i], baseSaturation[ch][i]);
+
+                // Boundary handling
+                if (baseSaturation[ch][i] >= 255 && nextSatDir > 0)
+                {
+                    nextSatDir = markovTransitionSaturationBiased(-1, 255);
+                }
+                else if (baseSaturation[ch][i] <= 0 && nextSatDir < 0)
+                {
+                    nextSatDir = markovTransitionSaturationBiased(1, 0);
+                }
+
+                satDir[ch][i] = nextSatDir;
+                baseSaturation[ch][i] = constrain(baseSaturation[ch][i] + nextSatDir * 2, 0, 255);
             }
         }
     }

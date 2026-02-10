@@ -97,6 +97,15 @@ public:
                 hueDir[ch][i] = 0;
                 baseBrightness[ch][i] = BASE_BRIGHTNESS;
                 brightDir[ch][i] = 0;
+
+                // Initialize saturation from power law distribution
+                // Sample: sat = 255 * (1 - u^α) where u ~ Uniform(0,1)
+                // α=4 gives ~68% at high saturation, ~7% at very low
+                float u = random(1000) / 1000.0f;  // Uniform [0,1)
+                float power_sample = powf(u, POWER_LAW_ALPHA);  // u^4
+                float inverted = 1.0f - power_sample;
+                baseSaturation[ch][i] = (uint8_t)(inverted * 255);
+                satDir[ch][i] = 0;
             }
             cachedBrightness[ch] = 100; // Default to full brightness
 
@@ -246,7 +255,7 @@ private:
             // Compute base color
             int hue360 = (channelHue[channelIndex] + hueOffset[channelIndex][i] + 360) % 360;
             uint8_t hue8 = map(hue360, 0, 360, 0, 255);
-            CRGB baseColor = CHSV(hue8, 255, baseBrightness[channelIndex][i]);
+            CRGB baseColor = CHSV(hue8, baseSaturation[channelIndex][i], baseBrightness[channelIndex][i]);
 
             // Check if any raindrop covers this LED
             CRGB finalColor = baseColor;

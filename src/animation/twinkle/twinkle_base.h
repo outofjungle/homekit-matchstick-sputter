@@ -61,16 +61,6 @@ public:
         reset();
     }
 
-    void setChannelHues(int h1, int h2, int h3, int h4) override
-    {
-        AnimationBase::setChannelHues(h1, h2, h3, h4);
-    }
-
-    void setChannelBrightnesses(int b1, int b2, int b3, int b4) override
-    {
-        AnimationBase::setChannelBrightnesses(b1, b2, b3, b4);
-    }
-
     void begin() override
     {
         reset();
@@ -119,6 +109,7 @@ public:
 
 protected:
     // Twinkle slots (slot-based, not per-LED — saves memory vs [4][MAX_LEDS])
+    // RAM: TwinkleSlot[4][200] ≈ 4ch × 200 × ~12 bytes/slot = ~9,600 bytes
     TwinkleSlot twinkles[4][MAX_TWINKLE_SLOTS];
     uint16_t rampFrame[4]; // Frames elapsed since reset per channel, saturates at RAMP_FRAMES
 
@@ -316,10 +307,7 @@ private:
 
             if (activeTwinkle == nullptr)
             {
-                // Render base layer
-                int hue360 = (channelHue[channelIndex] + hueOffset[channelIndex][i] + 360) % 360;
-                uint8_t hue8 = map(hue360, 0, 360, 0, 255);
-                leds[i] = CHSV(hue8, baseSaturation[channelIndex][i], baseBrightness[channelIndex][i]);
+                leds[i] = computeBaseColor(channelIndex, i);
             }
             else
             {

@@ -26,42 +26,34 @@ NotificationManager* notificationMgr = nullptr;
 AnimationManager* animationMgr = nullptr;
 
 // Button state machine for factory reset (GPIO39)
-enum ButtonState {
+enum class ButtonState {
     BTN_IDLE,               // Not pressed
-    BTN_PRESSED,            // Pressed < 5s (short press for mode cycle)
+    BTN_PRESSED,            // Pressed < 5s
     BTN_NOTIFICATION,       // Showing warning animation (3x cycles) - runs to completion
     BTN_RESET_CONFIRM,      // Showing red confirmation for 3s before reset
     BTN_RESET,              // Factory reset triggered
     BTN_CANCELLED_CONFIRM   // Animation complete, button was released, showing green
 };
 
-ButtonState buttonState = BTN_IDLE;
+ButtonState buttonState = ButtonState::BTN_IDLE;
 unsigned long buttonPressStartMs = 0;
 unsigned long confirmStartMs = 0;
 bool buttonLastState = HIGH;  // GPIO39 is pulled high, LOW when pressed
 bool buttonReleasedDuringAnimation = false;  // Track if button was released during 3x sequence
-uint8_t currentDisplayMode = 0;  // For display mode cycling
 bool animButtonLastState = HIGH;  // GPIO0 is pulled high, LOW when pressed
 
 // Animation button state machine
-enum AnimButtonState {
+enum class AnimButtonState {
     ANIM_BTN_IDLE,
     ANIM_BTN_PRESSED
 };
-AnimButtonState animButtonState = ANIM_BTN_IDLE;
+AnimButtonState animButtonState = AnimButtonState::ANIM_BTN_IDLE;
 unsigned long animButtonPressStartMs = 0;
 
 // Forward declaration
 void blankAllLEDs();
 void applyChannelDefaults();
 void updateAnimationButton();
-
-// Handle short press (display mode cycling)
-void handleShortPress() {
-    currentDisplayMode = (currentDisplayMode + 1) % 4;  // Cycle through 4 modes
-    Serial.printf("Display mode: %d\n", currentDisplayMode);
-    // TODO: Implement actual display mode logic (placeholder for beads-4vz)
-}
 
 // Update animation button (GPIO0) - state machine with long press support
 void updateAnimationButton() {
@@ -87,24 +79,24 @@ void updateAnimationButton() {
 
     // State machine logic
     switch (animButtonState) {
-        case ANIM_BTN_IDLE:
+        case AnimButtonState::ANIM_BTN_IDLE:
             if (buttonJustPressed) {
-                animButtonState = ANIM_BTN_PRESSED;
+                animButtonState = AnimButtonState::ANIM_BTN_PRESSED;
                 animButtonPressStartMs = now;
                 Serial.println("Animation button pressed");
             }
             break;
 
-        case ANIM_BTN_PRESSED:
+        case AnimButtonState::ANIM_BTN_PRESSED:
             // Check if long press threshold reached
             if (buttonPressed && (now - animButtonPressStartMs) >= ANIM_BUTTON_LONG_PRESS_MS) {
                 // Long press: reset to defaults immediately
                 Serial.println("Animation button long press - resetting to defaults");
                 applyChannelDefaults();
                 if (animationMgr) {
-                    animationMgr->setMode(ANIM_NONE);
+                    animationMgr->setMode(AnimationMode::ANIM_NONE);
                 }
-                animButtonState = ANIM_BTN_IDLE;
+                animButtonState = AnimButtonState::ANIM_BTN_IDLE;
             }
             else if (buttonJustReleased) {
                 // Short press: cycle animation mode
@@ -115,7 +107,7 @@ void updateAnimationButton() {
                         animationMgr->cycleMode();
                     }
                 }
-                animButtonState = ANIM_BTN_IDLE;
+                animButtonState = AnimButtonState::ANIM_BTN_IDLE;
             }
             break;
     }
@@ -237,25 +229,20 @@ void updateButtonStateMachine() {
 
     // State machine logic
     switch (buttonState) {
-        case BTN_IDLE:
+        case ButtonState::BTN_IDLE:
             if (buttonJustPressed) {
-                buttonState = BTN_PRESSED;
+                buttonState = ButtonState::BTN_PRESSED;
                 buttonPressStartMs = now;
                 Serial.println("Button pressed");
             }
             break;
 
-        case BTN_PRESSED:
+        case ButtonState::BTN_PRESSED:
             if (buttonJustReleased) {
-                // Short press - cycle display mode
-                unsigned long pressDuration = now - buttonPressStartMs;
-                if (pressDuration < FACTORY_RESET_WARNING_MS) {
-                    handleShortPress();
-                }
-                buttonState = BTN_IDLE;
+                buttonState = ButtonState::BTN_IDLE;
             } else if ((now - buttonPressStartMs) >= FACTORY_RESET_WARNING_MS) {
                 // Held for 5s - enter notification state
-                buttonState = BTN_NOTIFICATION;
+                buttonState = ButtonState::BTN_NOTIFICATION;
                 buttonReleasedDuringAnimation = false;  // Reset flag
                 Serial.println("Entering factory reset warning mode...");
 
@@ -264,11 +251,11 @@ void updateButtonStateMachine() {
 
                 // Start warning animation (3 complete cycles)
                 // ~300ms per step = ~2.4s per cycle, ~7.2s total for 3 cycles
-                notificationMgr->start(PATTERN_WARNING, CRGB::Red, 300, 3);
+                notificationMgr->start(NotificationPattern::PATTERN_WARNING, CRGB::Red, 300, 3);
             }
             break;
 
-        case BTN_NOTIFICATION:
+        case ButtonState::BTN_NOTIFICATION:
             // Track button release but let animation complete
             if (buttonJustReleased) {
                 Serial.println("Button released - animation will complete, then show cancellation");
@@ -282,43 +269,43 @@ void updateButtonStateMachine() {
                 if (buttonReleasedDuringAnimation || !buttonPressed) {
                     // Button was released during animation - show green confirmation
                     Serial.println("Animation complete - reset cancelled (button was released)");
-                    buttonState = BTN_CANCELLED_CONFIRM;
+                    buttonState = ButtonState::BTN_CANCELLED_CONFIRM;
                     confirmStartMs = now;
                     buttonReleasedDuringAnimation = false;
 
                     // Show green confirmation
-                    notificationMgr->start(PATTERN_SOLID, CRGB::Green, 0, 0);
+                    notificationMgr->start(NotificationPattern::PATTERN_SOLID, CRGB::Green, 0, 0);
                 } else {
                     // Button still held - show red confirmation for 3s before reset
                     Serial.println("Animation complete - button still held, showing red confirmation");
-                    buttonState = BTN_RESET_CONFIRM;
+                    buttonState = ButtonState::BTN_RESET_CONFIRM;
                     confirmStartMs = now;
 
                     // Show red confirmation (solid for 3 seconds)
-                    notificationMgr->start(PATTERN_SOLID, CRGB::Red, 0, 0);
+                    notificationMgr->start(NotificationPattern::PATTERN_SOLID, CRGB::Red, 0, 0);
                 }
             }
             break;
 
-        case BTN_RESET_CONFIRM:
+        case ButtonState::BTN_RESET_CONFIRM:
             if ((now - confirmStartMs) >= FACTORY_RESET_CONFIRM_MS) {
                 // 3 seconds elapsed - initiate factory reset
                 Serial.println("Red confirmation complete - initiating factory reset");
-                buttonState = BTN_RESET;
+                buttonState = ButtonState::BTN_RESET;
                 handleFactoryReset();
             }
             break;
 
-        case BTN_CANCELLED_CONFIRM:
+        case ButtonState::BTN_CANCELLED_CONFIRM:
             if ((now - confirmStartMs) >= FACTORY_RESET_CONFIRM_MS) {
                 // 3 seconds elapsed - restore previous state and resume
                 Serial.println("Resuming normal operation");
                 notificationMgr->stop();
-                buttonState = BTN_IDLE;
+                buttonState = ButtonState::BTN_IDLE;
             }
             break;
 
-        case BTN_RESET:
+        case ButtonState::BTN_RESET:
             // Factory reset in progress, device will reboot
             break;
     }
@@ -449,8 +436,8 @@ void loop() {
 
     // Update notification animations if active (highest priority)
     if (notificationMgr->isActive()) {
-        bool stillRunning = notificationMgr->update(NUM_LEDS_PER_CHANNEL);
-        // Animation completion is now handled in the state machine
+        notificationMgr->update(NUM_LEDS_PER_CHANNEL);
+        // Animation completion is handled in the button state machine
         // (checking getCycleCount() in BTN_NOTIFICATION state)
     }
 
@@ -458,12 +445,6 @@ void loop() {
     if (!notificationMgr->isActive() && animationMgr->isActive()) {
         animationMgr->update();
     }
-
-    // Update FSM state for all channels
-    if (channel1Service) channel1Service->updateFSM();
-    if (channel2Service) channel2Service->updateFSM();
-    if (channel3Service) channel3Service->updateFSM();
-    if (channel4Service) channel4Service->updateFSM();
 
     // Poll HomeSpan for HomeKit events
     homeSpan.poll();

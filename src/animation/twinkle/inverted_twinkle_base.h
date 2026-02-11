@@ -7,6 +7,9 @@
 class InvertedTwinkleBase : public TwinkleAnimationBase
 {
 public:
+    // NOTE: This begin() intentionally duplicates TwinkleAnimationBase::reset() logic, but calls
+    // initInvertedBaseLayer() instead of resetBaseLayer(). This is accepted duplication — the
+    // inheritance design requires the swap to apply dark-shimmer brightness initialization.
     void begin() override
     {
         initInvertedBaseLayer();

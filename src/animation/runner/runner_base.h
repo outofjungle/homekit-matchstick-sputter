@@ -40,18 +40,6 @@ public:
         reset();
     }
 
-    // Set channel hues (called by manager when animation starts or hue changes)
-    void setChannelHues(int h1, int h2, int h3, int h4) override
-    {
-        AnimationBase::setChannelHues(h1, h2, h3, h4);
-    }
-
-    // Set channel brightnesses (affects runner count)
-    void setChannelBrightnesses(int b1, int b2, int b3, int b4) override
-    {
-        AnimationBase::setChannelBrightnesses(b1, b2, b3, b4);
-    }
-
     void begin() override
     {
         reset();
@@ -192,14 +180,10 @@ protected:
     {
         for (int i = 0; i < numLeds; i++)
         {
-            // Compute base color
-            int hue360 = (channelHue[channelIndex] + hueOffset[channelIndex][i] + 360) % 360;
-            uint8_t hue8 = map(hue360, 0, 360, 0, 255);
-            CRGB baseColor = CHSV(hue8, baseSaturation[channelIndex][i], baseBrightness[channelIndex][i]);
+            CRGB baseColor = computeBaseColor(channelIndex, i);
 
             // Check if any runner covers this LED
             CRGB finalColor = baseColor;
-            bool inRunner = false;
 
             for (int r = 0; r < MAX_RUNNER_SLOTS; r++)
             {
@@ -221,8 +205,6 @@ protected:
                     int posInRunner = i - tailPos;
                     uint8_t blendFactor = gaussianLUT.table[posInRunner];
                     finalColor = blend(baseColor, runnerColor, blendFactor);
-
-                    inRunner = true;
                     break; // Only apply first runner found
                 }
             }

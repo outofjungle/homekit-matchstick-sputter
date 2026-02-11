@@ -27,6 +27,7 @@ struct DEV_LedChannel : Service::LightBulb {
 
     // FSM state
     ChannelState currentState = ChannelState::NORMAL;
+    ChannelState preNotificationState = ChannelState::NORMAL; // State before notification preempted
     unsigned long stateEnteredMs = 0;
     bool pendingHomeKitSync = false;
 
@@ -122,11 +123,6 @@ struct DEV_LedChannel : Service::LightBulb {
         }
     }
 
-    // FSM: Time-based state transitions
-    void updateFSM() {
-        // No time-based transitions needed (BOOT_FLASH removed)
-    }
-
     // HomeSpan loop - sync device state changes to HomeKit
     void loop() {
         if (!pendingHomeKitSync) return;
@@ -146,6 +142,7 @@ struct DEV_LedChannel : Service::LightBulb {
     // FSM: Yield control to notification system
     void yieldToNotification() {
         if (currentState != ChannelState::NOTIFICATION) {
+            preNotificationState = currentState;
             enterState(ChannelState::NOTIFICATION);
         }
     }
@@ -153,8 +150,10 @@ struct DEV_LedChannel : Service::LightBulb {
     // FSM: Resume from notification
     void resumeFromNotification() {
         if (currentState == ChannelState::NOTIFICATION) {
-            // Return to appropriate state based on desired values
-            if (!desired.power) {
+            // Restore pre-notification state so ANIMATION resumes correctly
+            if (preNotificationState == ChannelState::ANIMATION) {
+                enterState(ChannelState::ANIMATION);
+            } else if (!desired.power) {
                 enterState(ChannelState::OFF);
             } else {
                 enterState(ChannelState::NORMAL);

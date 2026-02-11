@@ -64,9 +64,7 @@ private:
     {
         for (int i = 0; i < (int)numLeds; i++)
         {
-            int hue360 = (channelHue[channelIndex] + hueOffset[channelIndex][i] + 360) % 360;
-            uint8_t hue8 = map(hue360, 0, 360, 0, 255);
-            leds[i] = CHSV(hue8, baseSaturation[channelIndex][i], baseBrightness[channelIndex][i]);
+            leds[i] = computeBaseColor(channelIndex, i);
         }
     }
 };

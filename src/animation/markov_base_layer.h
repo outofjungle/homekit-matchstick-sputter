@@ -50,12 +50,21 @@ public:
 
 protected:
     // Per-LED base state (4 channels × MAX_LEDS)
+    // RAM: 6 arrays × 4ch × 200 LEDs × 1 byte = ~4,800 bytes per animation instance
     int8_t hueOffset[4][MAX_LEDS];       // Current offset from channel hue (-ANGLE_WIDTH/2 to +ANGLE_WIDTH/2)
     int8_t hueDir[4][MAX_LEDS];          // Last hue move direction: -1, 0, +1
     uint8_t baseBrightness[4][MAX_LEDS]; // Current base brightness
     int8_t brightDir[4][MAX_LEDS];       // Last brightness move direction: -1, 0, +1
     uint8_t baseSaturation[4][MAX_LEDS]; // Current saturation (0-255)
     int8_t satDir[4][MAX_LEDS];          // Last saturation move direction: -1, 0, +1
+
+    // Compute the base layer CRGB color for a single LED
+    // Shared helper used by all renderChannel implementations
+    CRGB computeBaseColor(int channelIndex, int ledIndex) const {
+        int hue360 = (channelHue[channelIndex] + hueOffset[channelIndex][ledIndex] + 360) % 360;
+        uint8_t hue8 = map(hue360, 0, 360, 0, 255);
+        return CHSV(hue8, baseSaturation[channelIndex][ledIndex], baseBrightness[channelIndex][ledIndex]);
+    }
 
     // Initialize all base layer per-LED state (call from derived class reset())
     void resetBaseLayer()
@@ -273,8 +282,7 @@ protected:
                 }
 
                 brightDir[ch][i] = nextBrightDir;
-                baseBrightness[ch][i] += nextBrightDir * 2; // Step by 2
-                baseBrightness[ch][i] = constrain(baseBrightness[ch][i], BASE_BRIGHTNESS, MAX_BRIGHTNESS);
+                baseBrightness[ch][i] = (uint8_t)constrain((int)baseBrightness[ch][i] + nextBrightDir * 2, BASE_BRIGHTNESS, MAX_BRIGHTNESS);
 
                 // Saturation random walk (power-law-biased)
                 int8_t nextSatDir = markovTransitionSaturationBiased(satDir[ch][i], baseSaturation[ch][i]);

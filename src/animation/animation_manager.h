@@ -37,6 +37,7 @@
 #include "rain/inverted_square_rain.h"
 #include "base/base_only.h"
 #include "base/inverted_base.h"
+#include "rainbow/rainbow.h"
 #include "../led_channel.h"
 
 // Animation modes
@@ -76,6 +77,7 @@ enum AnimationMode {
     ANIM_SQUARE_RUNNER,                           // Square runner (4 colors)
     ANIM_SQUARE_RAIN,                             // Square rain (4 colors)
     ANIM_SQUARE_TWINKLE,                          // Square twinkle (4 colors)
+    ANIM_RAINBOW,                                 // Full-spectrum rainbow sweep
     ANIM_COUNT                                    // Total number of modes (for cycling)
 };
 
@@ -237,6 +239,7 @@ private:
             case ANIM_INVERTED_SQUARE_TWINKLE:           return new InvertedSquareTwinkle();
             case ANIM_BASE:                              return new BaseOnlyAnimation();
             case ANIM_INVERTED_BASE:                     return new InvertedBaseAnimation();
+            case ANIM_RAINBOW:                           return new RainbowAnimation();
             default:                                     return nullptr;
         }
     }
@@ -379,6 +382,7 @@ private:
             case ANIM_TRIADIC_TWINKLE:                   return "Triadic Twinkle";
             case ANIM_INVERTED_SQUARE_TWINKLE:           return "Inv. Square Twinkle";
             case ANIM_SQUARE_TWINKLE:                    return "Square Twinkle";
+            case ANIM_RAINBOW:                           return "Rainbow";
             default:                                     return "Unknown";
         }
     }

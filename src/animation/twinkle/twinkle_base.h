@@ -122,30 +122,6 @@ protected:
     TwinkleSlot twinkles[4][MAX_TWINKLE_SLOTS];
     uint16_t rampFrame[4]; // Frames elapsed since reset per channel, saturates at RAMP_FRAMES
 
-private:
-    // Check if any active slot is using this LED index
-    bool isLedTwinkling(int ch, uint16_t ledIndex)
-    {
-        for (int t = 0; t < MAX_TWINKLE_SLOTS; t++)
-        {
-            if (twinkles[ch][t].phase != PHASE_NONE && twinkles[ch][t].ledIndex == ledIndex)
-                return true;
-        }
-        return false;
-    }
-
-    // Count active twinkle slots on a channel
-    int countActiveTwinkles(int ch)
-    {
-        int count = 0;
-        for (int t = 0; t < MAX_TWINKLE_SLOTS; t++)
-        {
-            if (twinkles[ch][t].phase != PHASE_NONE)
-                count++;
-        }
-        return count;
-    }
-
     // Update twinkles (spawning and state machine progression)
     void updateTwinkles()
     {
@@ -295,6 +271,30 @@ private:
             if (!spawned)
                 break; // No free LEDs found, stop trying
         }
+    }
+
+private:
+    // Check if any active slot is using this LED index
+    bool isLedTwinkling(int ch, uint16_t ledIndex)
+    {
+        for (int t = 0; t < MAX_TWINKLE_SLOTS; t++)
+        {
+            if (twinkles[ch][t].phase != PHASE_NONE && twinkles[ch][t].ledIndex == ledIndex)
+                return true;
+        }
+        return false;
+    }
+
+    // Count active twinkle slots on a channel
+    int countActiveTwinkles(int ch)
+    {
+        int count = 0;
+        for (int t = 0; t < MAX_TWINKLE_SLOTS; t++)
+        {
+            if (twinkles[ch][t].phase != PHASE_NONE)
+                count++;
+        }
+        return count;
     }
 
     // Render a single channel

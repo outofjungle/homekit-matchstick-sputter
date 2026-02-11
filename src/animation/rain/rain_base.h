@@ -109,40 +109,7 @@ protected:
     Raindrop raindrops[4][MAX_RAINDROP_SLOTS]; // Per channel
     uint16_t framesSinceSpawn[4];              // Per channel, for spawn probability
 
-private:
-    // Check if position collides with any active raindrop
-    bool checkCollision(int channelIndex, int16_t pos)
-    {
-        for (int r = 0; r < MAX_RAINDROP_SLOTS; r++)
-        {
-            if (raindrops[channelIndex][r].active)
-            {
-                int16_t distance = abs(pos - raindrops[channelIndex][r].centerPos);
-                if (distance < RAINDROP_LENGTH)
-                {
-                    return true; // Collision detected
-                }
-            }
-        }
-        return false; // No collision
-    }
-
-    // Find a random non-colliding spawn position
-    bool findSpawnPosition(int channelIndex, int16_t &outPos)
-    {
-        for (int attempt = 0; attempt < MAX_SPAWN_ATTEMPTS; attempt++)
-        {
-            int16_t candidatePos = random(0, MAX_LEDS);
-            if (!checkCollision(channelIndex, candidatePos))
-            {
-                outPos = candidatePos;
-                return true; // Found valid position
-            }
-        }
-        return false; // Failed to find position after max attempts
-    }
-
-    // Update raindrops (aging and spawning)
+    // Update raindrops (aging and spawning) — called by update() and inverted subclasses
     void updateRaindrops()
     {
         for (int ch = 0; ch < 4; ch++)
@@ -205,6 +172,39 @@ private:
                 }
             }
         }
+    }
+
+private:
+    // Check if position collides with any active raindrop
+    bool checkCollision(int channelIndex, int16_t pos)
+    {
+        for (int r = 0; r < MAX_RAINDROP_SLOTS; r++)
+        {
+            if (raindrops[channelIndex][r].active)
+            {
+                int16_t distance = abs(pos - raindrops[channelIndex][r].centerPos);
+                if (distance < RAINDROP_LENGTH)
+                {
+                    return true; // Collision detected
+                }
+            }
+        }
+        return false; // No collision
+    }
+
+    // Find a random non-colliding spawn position
+    bool findSpawnPosition(int channelIndex, int16_t &outPos)
+    {
+        for (int attempt = 0; attempt < MAX_SPAWN_ATTEMPTS; attempt++)
+        {
+            int16_t candidatePos = random(0, MAX_LEDS);
+            if (!checkCollision(channelIndex, candidatePos))
+            {
+                outPos = candidatePos;
+                return true; // Found valid position
+            }
+        }
+        return false; // Failed to find position after max attempts
     }
 
     // Compute Gaussian blend factor for a raindrop at a given position

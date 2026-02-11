@@ -108,7 +108,6 @@ protected:
     // Gaussian blend lookup table
     GaussianBlendLUT<RUNNER_LENGTH> gaussianLUT;
 
-private:
     // Update runners (spawning and movement)
     void updateRunners()
     {

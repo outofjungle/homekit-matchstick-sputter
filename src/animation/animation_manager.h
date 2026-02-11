@@ -7,41 +7,74 @@
 #include "runner/split_complementary_runner.h"
 #include "runner/triadic_runner.h"
 #include "runner/square_runner.h"
+#include "runner/inverted_runner_base.h"
+#include "runner/inverted_monochromatic_runner.h"
+#include "runner/inverted_complementary_runner.h"
+#include "runner/inverted_split_complementary_runner.h"
+#include "runner/inverted_triadic_runner.h"
+#include "runner/inverted_square_runner.h"
 #include "twinkle/monochromatic_twinkle.h"
 #include "twinkle/complementary_twinkle.h"
 #include "twinkle/split_complementary_twinkle.h"
 #include "twinkle/triadic_twinkle.h"
 #include "twinkle/square_twinkle.h"
+#include "twinkle/inverted_twinkle_base.h"
+#include "twinkle/inverted_monochromatic_twinkle.h"
+#include "twinkle/inverted_complementary_twinkle.h"
+#include "twinkle/inverted_split_complementary_twinkle.h"
+#include "twinkle/inverted_triadic_twinkle.h"
+#include "twinkle/inverted_square_twinkle.h"
 #include "rain/monochromatic_rain.h"
 #include "rain/complementary_rain.h"
 #include "rain/split_complementary_rain.h"
 #include "rain/triadic_rain.h"
 #include "rain/square_rain.h"
+#include "rain/inverted_rain_base.h"
+#include "rain/inverted_monochromatic_rain.h"
+#include "rain/inverted_complementary_rain.h"
+#include "rain/inverted_split_complementary_rain.h"
+#include "rain/inverted_triadic_rain.h"
+#include "rain/inverted_square_rain.h"
 #include "base/base_only.h"
 #include "base/inverted_base.h"
 #include "../led_channel.h"
 
 // Animation modes
 enum AnimationMode {
-    ANIM_NONE,                  // HomeKit control (normal operation)
-    ANIM_BASE,                  // Base layer only (no overlay)
-    ANIM_INVERTED_BASE,         // Inverted base layer (bright↔dim flipped)
-    ANIM_MONOCHROMATIC_RUNNER,  // Monochromatic runner (black/white)
-    ANIM_COMPLEMENTARY_RUNNER,  // Complementary runner (2 colors)
-    ANIM_SPLIT_COMPLEMENTARY_RUNNER, // Split-complementary runner (3 colors)
-    ANIM_TRIADIC_RUNNER,        // Triadic runner (3 colors)
-    ANIM_SQUARE_RUNNER,         // Square runner (4 colors)
-    ANIM_MONOCHROMATIC_RAIN,    // Monochromatic rain (primary + white)
-    ANIM_COMPLEMENTARY_RAIN,    // Complementary rain (2 colors)
-    ANIM_SPLIT_COMPLEMENTARY_RAIN, // Split-complementary rain (3 colors)
-    ANIM_TRIADIC_RAIN,          // Triadic rain (3 colors)
-    ANIM_SQUARE_RAIN,           // Square rain (4 colors)
-    ANIM_MONOCHROMATIC,         // Monochromatic twinkle (was ANIM_TWINKLE)
-    ANIM_COMPLEMENTARY,         // Complementary twinkle (2 colors)
-    ANIM_SPLIT_COMPLEMENTARY,   // Split-complementary twinkle (3 colors)
-    ANIM_TRIADIC,               // Triadic twinkle (3 colors)
-    ANIM_SQUARE,                // Square twinkle (4 colors)
-    ANIM_COUNT                  // Total number of modes (for cycling)
+    ANIM_NONE,                             // HomeKit control (normal operation)
+    ANIM_INVERTED_BASE,                    // Inverted base layer (dark shimmer)
+    ANIM_BASE,                             // Base layer only (no overlay)
+    ANIM_INVERTED_MONOCHROMATIC_RUNNER,    // Inverted monochromatic runner
+    ANIM_MONOCHROMATIC_RUNNER,             // Monochromatic runner (black/white)
+    ANIM_INVERTED_COMPLEMENTARY_RUNNER,    // Inverted complementary runner
+    ANIM_COMPLEMENTARY_RUNNER,             // Complementary runner (2 colors)
+    ANIM_INVERTED_SPLIT_COMPLEMENTARY_RUNNER, // Inverted split-complementary runner
+    ANIM_SPLIT_COMPLEMENTARY_RUNNER,       // Split-complementary runner (3 colors)
+    ANIM_INVERTED_TRIADIC_RUNNER,          // Inverted triadic runner
+    ANIM_TRIADIC_RUNNER,                   // Triadic runner (3 colors)
+    ANIM_INVERTED_SQUARE_RUNNER,           // Inverted square runner
+    ANIM_SQUARE_RUNNER,                    // Square runner (4 colors)
+    ANIM_INVERTED_MONOCHROMATIC_RAIN,      // Inverted monochromatic rain
+    ANIM_MONOCHROMATIC_RAIN,               // Monochromatic rain (primary + white)
+    ANIM_INVERTED_COMPLEMENTARY_RAIN,      // Inverted complementary rain
+    ANIM_COMPLEMENTARY_RAIN,               // Complementary rain (2 colors)
+    ANIM_INVERTED_SPLIT_COMPLEMENTARY_RAIN, // Inverted split-complementary rain
+    ANIM_SPLIT_COMPLEMENTARY_RAIN,         // Split-complementary rain (3 colors)
+    ANIM_INVERTED_TRIADIC_RAIN,            // Inverted triadic rain
+    ANIM_TRIADIC_RAIN,                     // Triadic rain (3 colors)
+    ANIM_INVERTED_SQUARE_RAIN,             // Inverted square rain
+    ANIM_SQUARE_RAIN,                      // Square rain (4 colors)
+    ANIM_INVERTED_MONOCHROMATIC,           // Inverted monochromatic twinkle
+    ANIM_MONOCHROMATIC,                    // Monochromatic twinkle
+    ANIM_INVERTED_COMPLEMENTARY,           // Inverted complementary twinkle
+    ANIM_COMPLEMENTARY,                    // Complementary twinkle (2 colors)
+    ANIM_INVERTED_SPLIT_COMPLEMENTARY,     // Inverted split-complementary twinkle
+    ANIM_SPLIT_COMPLEMENTARY,              // Split-complementary twinkle (3 colors)
+    ANIM_INVERTED_TRIADIC,                 // Inverted triadic twinkle
+    ANIM_TRIADIC,                          // Triadic twinkle (3 colors)
+    ANIM_INVERTED_SQUARE,                  // Inverted square twinkle
+    ANIM_SQUARE,                           // Square twinkle (4 colors)
+    ANIM_COUNT                             // Total number of modes (for cycling)
 };
 
 // Animation Manager
@@ -170,24 +203,39 @@ private:
     // Factory: allocate a fresh animation for the given mode
     AnimationBase* createAnimation(AnimationMode mode) {
         switch (mode) {
-            case ANIM_MONOCHROMATIC_RUNNER:       return new MonochromaticRunner();
-            case ANIM_COMPLEMENTARY_RUNNER:       return new ComplementaryRunner();
-            case ANIM_SPLIT_COMPLEMENTARY_RUNNER: return new SplitComplementaryRunner();
-            case ANIM_TRIADIC_RUNNER:             return new TriadicRunner();
-            case ANIM_SQUARE_RUNNER:              return new SquareRunner();
-            case ANIM_MONOCHROMATIC_RAIN:         return new MonochromaticRain();
-            case ANIM_COMPLEMENTARY_RAIN:         return new ComplementaryRain();
-            case ANIM_SPLIT_COMPLEMENTARY_RAIN:   return new SplitComplementaryRain();
-            case ANIM_TRIADIC_RAIN:               return new TriadicRain();
-            case ANIM_SQUARE_RAIN:                return new SquareRain();
-            case ANIM_MONOCHROMATIC:              return new MonochromaticTwinkle();
-            case ANIM_COMPLEMENTARY:              return new ComplementaryTwinkle();
-            case ANIM_SPLIT_COMPLEMENTARY:        return new SplitComplementaryTwinkle();
-            case ANIM_TRIADIC:                    return new TriadicTwinkle();
-            case ANIM_SQUARE:                     return new SquareTwinkle();
-            case ANIM_BASE:                       return new BaseOnlyAnimation();
-            case ANIM_INVERTED_BASE:              return new InvertedBaseAnimation();
-            default:                              return nullptr;
+            case ANIM_MONOCHROMATIC_RUNNER:              return new MonochromaticRunner();
+            case ANIM_COMPLEMENTARY_RUNNER:              return new ComplementaryRunner();
+            case ANIM_SPLIT_COMPLEMENTARY_RUNNER:        return new SplitComplementaryRunner();
+            case ANIM_TRIADIC_RUNNER:                    return new TriadicRunner();
+            case ANIM_SQUARE_RUNNER:                     return new SquareRunner();
+            case ANIM_INVERTED_MONOCHROMATIC_RUNNER:     return new InvertedMonochromaticRunner();
+            case ANIM_INVERTED_COMPLEMENTARY_RUNNER:     return new InvertedComplementaryRunner();
+            case ANIM_INVERTED_SPLIT_COMPLEMENTARY_RUNNER: return new InvertedSplitComplementaryRunner();
+            case ANIM_INVERTED_TRIADIC_RUNNER:           return new InvertedTriadicRunner();
+            case ANIM_INVERTED_SQUARE_RUNNER:            return new InvertedSquareRunner();
+            case ANIM_MONOCHROMATIC_RAIN:                return new MonochromaticRain();
+            case ANIM_COMPLEMENTARY_RAIN:                return new ComplementaryRain();
+            case ANIM_SPLIT_COMPLEMENTARY_RAIN:          return new SplitComplementaryRain();
+            case ANIM_TRIADIC_RAIN:                      return new TriadicRain();
+            case ANIM_SQUARE_RAIN:                       return new SquareRain();
+            case ANIM_INVERTED_MONOCHROMATIC_RAIN:       return new InvertedMonochromaticRain();
+            case ANIM_INVERTED_COMPLEMENTARY_RAIN:       return new InvertedComplementaryRain();
+            case ANIM_INVERTED_SPLIT_COMPLEMENTARY_RAIN: return new InvertedSplitComplementaryRain();
+            case ANIM_INVERTED_TRIADIC_RAIN:             return new InvertedTriadicRain();
+            case ANIM_INVERTED_SQUARE_RAIN:              return new InvertedSquareRain();
+            case ANIM_MONOCHROMATIC:                     return new MonochromaticTwinkle();
+            case ANIM_COMPLEMENTARY:                     return new ComplementaryTwinkle();
+            case ANIM_SPLIT_COMPLEMENTARY:               return new SplitComplementaryTwinkle();
+            case ANIM_TRIADIC:                           return new TriadicTwinkle();
+            case ANIM_SQUARE:                            return new SquareTwinkle();
+            case ANIM_INVERTED_MONOCHROMATIC:            return new InvertedMonochromaticTwinkle();
+            case ANIM_INVERTED_COMPLEMENTARY:            return new InvertedComplementaryTwinkle();
+            case ANIM_INVERTED_SPLIT_COMPLEMENTARY:      return new InvertedSplitComplementaryTwinkle();
+            case ANIM_INVERTED_TRIADIC:                  return new InvertedTriadicTwinkle();
+            case ANIM_INVERTED_SQUARE:                   return new InvertedSquareTwinkle();
+            case ANIM_BASE:                              return new BaseOnlyAnimation();
+            case ANIM_INVERTED_BASE:                     return new InvertedBaseAnimation();
+            default:                                     return nullptr;
         }
     }
 
@@ -296,25 +344,40 @@ private:
 
     const char* getModeName(AnimationMode mode) const {
         switch (mode) {
-            case ANIM_NONE:                       return "HomeKit";
-            case ANIM_MONOCHROMATIC_RUNNER:       return "Monochromatic Runner";
-            case ANIM_COMPLEMENTARY_RUNNER:       return "Complementary Runner";
-            case ANIM_SPLIT_COMPLEMENTARY_RUNNER: return "Split-Complementary Runner";
-            case ANIM_TRIADIC_RUNNER:             return "Triadic Runner";
-            case ANIM_SQUARE_RUNNER:              return "Square Runner";
-            case ANIM_MONOCHROMATIC_RAIN:         return "Monochromatic Rain";
-            case ANIM_COMPLEMENTARY_RAIN:         return "Complementary Rain";
-            case ANIM_SPLIT_COMPLEMENTARY_RAIN:   return "Split-Complementary Rain";
-            case ANIM_TRIADIC_RAIN:               return "Triadic Rain";
-            case ANIM_SQUARE_RAIN:                return "Square Rain";
-            case ANIM_MONOCHROMATIC:              return "Monochromatic Twinkle";
-            case ANIM_COMPLEMENTARY:              return "Complementary Twinkle";
-            case ANIM_SPLIT_COMPLEMENTARY:        return "Split-Complementary Twinkle";
-            case ANIM_TRIADIC:                    return "Triadic Twinkle";
-            case ANIM_SQUARE:                     return "Square Twinkle";
-            case ANIM_BASE:                       return "Base";
-            case ANIM_INVERTED_BASE:              return "Inverted Base";
-            default:                              return "Unknown";
+            case ANIM_NONE:                              return "HomeKit";
+            case ANIM_INVERTED_BASE:                     return "Inverted Base";
+            case ANIM_BASE:                              return "Base";
+            case ANIM_INVERTED_MONOCHROMATIC_RUNNER:     return "Inv. Monochromatic Runner";
+            case ANIM_MONOCHROMATIC_RUNNER:              return "Monochromatic Runner";
+            case ANIM_INVERTED_COMPLEMENTARY_RUNNER:     return "Inv. Complementary Runner";
+            case ANIM_COMPLEMENTARY_RUNNER:              return "Complementary Runner";
+            case ANIM_INVERTED_SPLIT_COMPLEMENTARY_RUNNER: return "Inv. Split-Comp Runner";
+            case ANIM_SPLIT_COMPLEMENTARY_RUNNER:        return "Split-Complementary Runner";
+            case ANIM_INVERTED_TRIADIC_RUNNER:           return "Inv. Triadic Runner";
+            case ANIM_TRIADIC_RUNNER:                    return "Triadic Runner";
+            case ANIM_INVERTED_SQUARE_RUNNER:            return "Inv. Square Runner";
+            case ANIM_SQUARE_RUNNER:                     return "Square Runner";
+            case ANIM_INVERTED_MONOCHROMATIC_RAIN:       return "Inv. Monochromatic Rain";
+            case ANIM_MONOCHROMATIC_RAIN:                return "Monochromatic Rain";
+            case ANIM_INVERTED_COMPLEMENTARY_RAIN:       return "Inv. Complementary Rain";
+            case ANIM_COMPLEMENTARY_RAIN:                return "Complementary Rain";
+            case ANIM_INVERTED_SPLIT_COMPLEMENTARY_RAIN: return "Inv. Split-Comp Rain";
+            case ANIM_SPLIT_COMPLEMENTARY_RAIN:          return "Split-Complementary Rain";
+            case ANIM_INVERTED_TRIADIC_RAIN:             return "Inv. Triadic Rain";
+            case ANIM_TRIADIC_RAIN:                      return "Triadic Rain";
+            case ANIM_INVERTED_SQUARE_RAIN:              return "Inv. Square Rain";
+            case ANIM_SQUARE_RAIN:                       return "Square Rain";
+            case ANIM_INVERTED_MONOCHROMATIC:            return "Inv. Monochromatic Twinkle";
+            case ANIM_MONOCHROMATIC:                     return "Monochromatic Twinkle";
+            case ANIM_INVERTED_COMPLEMENTARY:            return "Inv. Complementary Twinkle";
+            case ANIM_COMPLEMENTARY:                     return "Complementary Twinkle";
+            case ANIM_INVERTED_SPLIT_COMPLEMENTARY:      return "Inv. Split-Comp Twinkle";
+            case ANIM_SPLIT_COMPLEMENTARY:               return "Split-Complementary Twinkle";
+            case ANIM_INVERTED_TRIADIC:                  return "Inv. Triadic Twinkle";
+            case ANIM_TRIADIC:                           return "Triadic Twinkle";
+            case ANIM_INVERTED_SQUARE:                   return "Inv. Square Twinkle";
+            case ANIM_SQUARE:                            return "Square Twinkle";
+            default:                                     return "Unknown";
         }
     }
 

@@ -3,7 +3,6 @@
 #include "HomeSpan.h"
 #include "config.h"
 #include "led_channel.h"
-#include "wifi_credentials.h"
 #include "notification_pattern.h"
 #include "animation/animation_manager.h"
 
@@ -25,21 +24,20 @@ NotificationManager* notificationMgr = nullptr;
 // Animation manager for ambient animations
 AnimationManager* animationMgr = nullptr;
 
-// Button state machine for factory reset (GPIO39)
+// Button state machine for GPIO39 (3-tier: short/AP/factory reset)
 enum class ButtonState {
     BTN_IDLE,               // Not pressed
-    BTN_PRESSED,            // Pressed < 5s
-    BTN_NOTIFICATION,       // Showing warning animation (3x cycles) - runs to completion
-    BTN_RESET_CONFIRM,      // Showing red confirmation for 3s before reset
-    BTN_RESET,              // Factory reset triggered
-    BTN_CANCELLED_CONFIRM   // Animation complete, button was released, showing green
+    BTN_PRESSED,            // Pressed, measuring duration
+    BTN_AP_READY,           // 3s reached, solid purple, waiting for release or 10s
+    BTN_FACTORY_WARNING,    // 3x warning animation (10s reached)
+    BTN_CANCELLED_CONFIRM,  // Warning cancelled, green feedback
+    BTN_RESET               // Factory reset executing
 };
 
 ButtonState buttonState = ButtonState::BTN_IDLE;
 unsigned long buttonPressStartMs = 0;
 unsigned long confirmStartMs = 0;
 bool buttonLastState = HIGH;  // GPIO39 is pulled high, LOW when pressed
-bool buttonReleasedDuringAnimation = false;  // Track if button was released during 3x sequence
 bool animButtonLastState = HIGH;  // GPIO0 is pulled high, LOW when pressed
 
 // Animation button state machine
@@ -54,6 +52,7 @@ unsigned long animButtonPressStartMs = 0;
 void blankAllLEDs();
 void applyChannelDefaults();
 void updateAnimationButton();
+void activateAPMode();
 
 // Update animation button (GPIO0) - state machine with long press support
 void updateAnimationButton() {
@@ -127,9 +126,16 @@ void handleFactoryReset() {
     // Clear animation mode storage
     if (animationMgr) animationMgr->clearStorage();
 
-    // Blank all LEDs for visual feedback
+    // Show red confirmation on first 8 LEDs for 1 second
     blankAllLEDs();
+    for (int i = 0; i < NOTIFICATION_LEDS; i++) {
+        ledChannel1[i] = CRGB::Red;
+        ledChannel2[i] = CRGB::Red;
+        ledChannel3[i] = CRGB::Red;
+        ledChannel4[i] = CRGB::Red;
+    }
     FastLED.show();
+    delay(1000);
 
     Serial.println("Erasing HomeKit pairings and rebooting...");
 
@@ -146,6 +152,24 @@ void blankAllLEDs() {
     fill_solid(ledChannel3, NUM_LEDS_PER_CHANNEL, CRGB::Black);
     fill_solid(ledChannel4, NUM_LEDS_PER_CHANNEL, CRGB::Black);
     FastLED.show();
+}
+
+// Activate WiFi AP mode for credential setup
+void activateAPMode() {
+    Serial.println("Activating WiFi AP mode...");
+    // Set persistent purple on first 8 LEDs as AP indicator
+    blankAllLEDs();
+    for (int i = 0; i < NOTIFICATION_LEDS; i++) {
+        ledChannel1[i] = CRGB::Purple;
+        ledChannel2[i] = CRGB::Purple;
+        ledChannel3[i] = CRGB::Purple;
+        ledChannel4[i] = CRGB::Purple;
+    }
+    FastLED.show();
+    // Blocking call — runs captive portal until creds entered (reboot) or timeout (returns)
+    homeSpan.processSerialCommand("A");
+    // If we get here, AP timed out — resume normal operation
+    Serial.println("AP mode timed out, resuming normal operation");
 }
 
 // Apply channel defaults and validate NVS state
@@ -233,72 +257,62 @@ void updateButtonStateMachine() {
             if (buttonJustPressed) {
                 buttonState = ButtonState::BTN_PRESSED;
                 buttonPressStartMs = now;
-                Serial.println("Button pressed");
             }
             break;
 
         case ButtonState::BTN_PRESSED:
             if (buttonJustReleased) {
+                // Released before 3s — short press placeholder
+                Serial.println("GPIO39 short press");
+                buttonState = ButtonState::BTN_IDLE;
+            } else if ((now - buttonPressStartMs) >= AP_ACTIVATE_MS) {
+                // Held for 3s — show solid purple immediately, AP is ready
+                buttonState = ButtonState::BTN_AP_READY;
+                Serial.println("3s hold detected - AP mode ready");
+                blankAllLEDs();
+                notificationMgr->start(NotificationPattern::PATTERN_SOLID, CRGB::Purple, 0, 0);
+            }
+            break;
+
+        case ButtonState::BTN_AP_READY:
+            if (buttonJustReleased) {
+                // Released — activate AP mode
+                notificationMgr->stop();
+                activateAPMode();
                 buttonState = ButtonState::BTN_IDLE;
             } else if ((now - buttonPressStartMs) >= FACTORY_RESET_WARNING_MS) {
-                // Held for 5s - enter notification state
-                buttonState = ButtonState::BTN_NOTIFICATION;
-                buttonReleasedDuringAnimation = false;  // Reset flag
-                Serial.println("Entering factory reset warning mode...");
-
-                // Blank ALL LEDs before starting animation
+                // Held for 10s total — start factory reset warning
+                buttonState = ButtonState::BTN_FACTORY_WARNING;
+                Serial.println("10s hold detected - entering factory reset warning mode...");
+                notificationMgr->stop();
                 blankAllLEDs();
-
-                // Start warning animation (3 complete cycles)
-                // ~300ms per step = ~2.4s per cycle, ~7.2s total for 3 cycles
                 notificationMgr->start(NotificationPattern::PATTERN_WARNING, CRGB::Red, 300, 3);
             }
             break;
 
-        case ButtonState::BTN_NOTIFICATION:
-            // Track button release but let animation complete
-            if (buttonJustReleased) {
-                Serial.println("Button released - animation will complete, then show cancellation");
-                buttonReleasedDuringAnimation = true;
-            }
-
-            // Check if animation completed (3 cycles done)
+        case ButtonState::BTN_FACTORY_WARNING:
+            // Check if warning animation completed (3 cycles done)
             if (notificationMgr->getCycleCount() >= 3) {
                 notificationMgr->stop();
 
-                if (buttonReleasedDuringAnimation || !buttonPressed) {
-                    // Button was released during animation - show green confirmation
-                    Serial.println("Animation complete - reset cancelled (button was released)");
+                if (buttonPressed) {
+                    // Still held — execute factory reset
+                    Serial.println("Warning animation complete - button held, triggering factory reset");
+                    buttonState = ButtonState::BTN_RESET;
+                    handleFactoryReset();
+                } else {
+                    // Released — show green cancellation feedback
+                    Serial.println("Warning animation complete - button released, reset cancelled");
                     buttonState = ButtonState::BTN_CANCELLED_CONFIRM;
                     confirmStartMs = now;
-                    buttonReleasedDuringAnimation = false;
-
-                    // Show green confirmation
                     notificationMgr->start(NotificationPattern::PATTERN_SOLID, CRGB::Green, 0, 0);
-                } else {
-                    // Button still held - show red confirmation for 3s before reset
-                    Serial.println("Animation complete - button still held, showing red confirmation");
-                    buttonState = ButtonState::BTN_RESET_CONFIRM;
-                    confirmStartMs = now;
-
-                    // Show red confirmation (solid for 3 seconds)
-                    notificationMgr->start(NotificationPattern::PATTERN_SOLID, CRGB::Red, 0, 0);
                 }
-            }
-            break;
-
-        case ButtonState::BTN_RESET_CONFIRM:
-            if ((now - confirmStartMs) >= FACTORY_RESET_CONFIRM_MS) {
-                // 3 seconds elapsed - initiate factory reset
-                Serial.println("Red confirmation complete - initiating factory reset");
-                buttonState = ButtonState::BTN_RESET;
-                handleFactoryReset();
             }
             break;
 
         case ButtonState::BTN_CANCELLED_CONFIRM:
             if ((now - confirmStartMs) >= FACTORY_RESET_CONFIRM_MS) {
-                // 3 seconds elapsed - restore previous state and resume
+                // 3 seconds elapsed - resume normal operation
                 Serial.println("Resuming normal operation");
                 notificationMgr->stop();
                 buttonState = ButtonState::BTN_IDLE;
@@ -353,17 +367,15 @@ void setup() {
     pinMode(PIN_BUTTON_ANIM, INPUT_PULLUP);
     Serial.println("Button pin configured (GPIO0 - animation cycling).");
 
-    // Initialize status LED pin
-    pinMode(PIN_STATUS_LED, OUTPUT);
-    digitalWrite(PIN_STATUS_LED, LOW);  // Start off during setup
-    Serial.println("Status LED pin configured (GPIO22).");
+    Serial.println("Status LED pin configured (GPIO22 - HomeSpan managed).");
 
     // Apply channel defaults before HomeSpan initialization
     applyChannelDefaults();
 
-    // Set WiFi credentials before HomeSpan initialization
-    homeSpan.setWifiCredentials(WIFI_SSID, WIFI_PASSWORD);
-    Serial.println("WiFi credentials configured.");
+    // Configure HomeSpan status LED and AP (open network, activated via GPIO39 3s hold)
+    homeSpan.setStatusPin(PIN_STATUS_LED);
+    homeSpan.setApSSID(AP_SSID);
+    homeSpan.setApPassword("");
 
     // Initialize HomeSpan
     homeSpan.begin(Category::Bridges, DEVICE_NAME);
@@ -420,13 +432,11 @@ void setup() {
 
     Serial.println("========================================");
     Serial.println("Setup complete!");
-    Serial.println("Press 'W' in serial monitor to configure WiFi");
+    Serial.println("Hold GPIO39 for 3s to activate AP mode (Sputter-Setup, open network)");
     Serial.println("After WiFi is connected, pair with HomeKit");
     Serial.println("========================================\n");
 
-    // Turn on status LED to indicate device is active
-    digitalWrite(PIN_STATUS_LED, HIGH);
-    Serial.println("Status LED ON - device active");
+    Serial.println("Status LED active (HomeSpan managed)");
 }
 
 void loop() {

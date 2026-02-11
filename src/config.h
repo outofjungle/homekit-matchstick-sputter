@@ -25,10 +25,14 @@ constexpr unsigned long BLINK_INTERVAL_MS = 500;  // 500ms on, 500ms off = 1Hz b
 constexpr unsigned long DEBOUNCE_MS = 50;        // Button debounce time
 
 // Factory Reset Configuration
-constexpr unsigned long FACTORY_RESET_WARNING_MS = 5000;   // 5 seconds - trigger warning animation (3x cycles)
+constexpr unsigned long AP_ACTIVATE_MS = 3000;             // 3 seconds - trigger AP mode
+constexpr unsigned long FACTORY_RESET_WARNING_MS = 10000;  // 10 seconds - trigger warning animation (3x cycles)
 constexpr unsigned long FACTORY_RESET_CONFIRM_MS = 3000;   // 3 seconds - green confirmation display (cancel)
 // Note: Animation duration is 3 cycles × 8 LEDs × 300ms = ~7.2 seconds
-// Total time if held: 5s (hold) + 7.2s (animation) = ~12.2s to trigger reset
+// Total time if held: 10s (hold) + 7.2s (animation) = ~17.2s to trigger reset
+
+// AP Configuration
+constexpr const char* AP_SSID = "Sputter-Setup";  // Open network (no password)
 
 // Animation Button Configuration
 constexpr unsigned long ANIM_BUTTON_LONG_PRESS_MS = 2000;  // 2 seconds - long press for reset

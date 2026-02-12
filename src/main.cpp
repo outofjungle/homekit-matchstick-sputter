@@ -409,9 +409,7 @@ void setup() {
 
     // Create Bridge Accessory (required first)
     new SpanAccessory();
-        new Service::AccessoryInformation();
-            new Characteristic::Identify();
-            new Characteristic::Name(DEVICE_NAME);
+        new DEV_Identify(DEVICE_NAME);
             new Characteristic::Manufacturer(DEVICE_MANUFACTURER);
             new Characteristic::SerialNumber(DEVICE_SERIAL);
             new Characteristic::Model(DEVICE_MODEL);

@@ -146,7 +146,10 @@ protected:
     }
 
     // Shared dark-shimmer constants and methods for inverted base variants
-    static constexpr uint8_t DARK_MAX_BRIGHTNESS = 51; // ~20% of 255
+    static constexpr uint8_t DARK_MAX_BRIGHTNESS = 51;          // ~20% of 255
+    static constexpr uint16_t DARK_MAX_ACTIVE_LEDS = MAX_LEDS / 5; // 40 = 20% cap
+
+    bool darkBrightSlowToggle = false; // flips every frame, brightness walks only on true
 
     // Downward bias lookup table (indices 0–51).
     // bias[b] = round(30 × sqrt(b / 51)) — 0 at floor, 30 at ceiling.
@@ -159,22 +162,26 @@ protected:
 
     // Power-law-biased brightness transition toward 0.
     // Higher brightness → stronger downward pull toward 0.
+    // Momentum 40%, stationary ~40-55% — slower and smoother than normal base.
     int8_t darkBrightnessTransition(int8_t currentDir, uint8_t currentBright)
     {
         int8_t bias = DARK_BRIGHT_BIAS[min((int)currentBright, (int)DARK_MAX_BRIGHTNESS)];
         int roll = random(100);
         if (currentDir == 0) {
-            if (roll < 40 + bias) return -1;
-            if (roll < 70) return 0;
+            // 55% stay, 25% down (+ bias), 20% up (- bias)
+            if (roll < 25 + bias) return -1;
+            if (roll < 80) return 0;
             return 1;
         }
         if (currentDir < 0) {
-            if (roll < 60 + bias / 2) return -1;
-            if (roll < 85) return 0;
+            // 40% continue, 40% stay, 20% reverse
+            if (roll < 40 + bias / 2) return -1;
+            if (roll < 80) return 0;
             return 1;
         } else {
-            if (roll < 60 - bias / 2) return 1;
-            if (roll < 85) return 0;
+            // 40% continue, 40% stay, 20% reverse
+            if (roll < 40 - bias / 2) return 1;
+            if (roll < 80) return 0;
             return -1;
         }
     }
@@ -185,11 +192,18 @@ protected:
         resetBaseLayer();
         for (int ch = 0; ch < 4; ch++)
         {
+            // Zero all brightness first
             for (int i = 0; i < MAX_LEDS; i++)
             {
+                baseBrightness[ch][i] = 0;
+                brightDir[ch][i] = 0;
+            }
+            // Randomly activate only DARK_MAX_ACTIVE_LEDS LEDs with cubic power-law brightness
+            for (uint16_t n = 0; n < DARK_MAX_ACTIVE_LEDS; n++)
+            {
+                int i = random(MAX_LEDS);
                 float u = random(1000) / 1000.0f;
                 baseBrightness[ch][i] = (uint8_t)(DARK_MAX_BRIGHTNESS * powf(u, 3.0f));
-                brightDir[ch][i] = 0;
             }
         }
     }
@@ -197,43 +211,46 @@ protected:
     // Update base layer with dark-biased brightness walk (call every frame for inverted variants)
     void updateInvertedBaseLayer()
     {
+        darkBrightSlowToggle = !darkBrightSlowToggle;
+
         for (int ch = 0; ch < 4; ch++)
         {
+            // Count currently active LEDs (brightness > 0) for the cap check
+            uint16_t activeCount = 0;
             for (int i = 0; i < MAX_LEDS; i++)
             {
-                // Hue random walk (identical to base layer)
-                int8_t nextHueDir = markovTransition(hueDir[ch][i]);
+                if (baseBrightness[ch][i] > 0) activeCount++;
+            }
 
-                if (hueOffset[ch][i] >= ANGLE_WIDTH / 2 && nextHueDir > 0)
-                    nextHueDir = markovTransition(-1);
-                else if (hueOffset[ch][i] <= -ANGLE_WIDTH / 2 && nextHueDir < 0)
-                    nextHueDir = markovTransition(1);
+            for (int i = 0; i < MAX_LEDS; i++)
+            {
+                bool isActive = baseBrightness[ch][i] > 0;
 
-                hueDir[ch][i] = nextHueDir;
-                hueOffset[ch][i] += nextHueDir;
-                hueOffset[ch][i] = constrain(hueOffset[ch][i], -ANGLE_WIDTH / 2, ANGLE_WIDTH / 2);
+                if (darkBrightSlowToggle)
+                {
+                    // Brightness walk — power-law biased toward 0 (every other frame = 2x slower)
+                    int8_t nextBrightDir = darkBrightnessTransition(brightDir[ch][i], baseBrightness[ch][i]);
 
-                // Brightness walk — power-law biased toward 0
-                int8_t nextBrightDir = darkBrightnessTransition(brightDir[ch][i], baseBrightness[ch][i]);
+                    if (baseBrightness[ch][i] >= DARK_MAX_BRIGHTNESS && nextBrightDir > 0)
+                        nextBrightDir = darkBrightnessTransition(-1, DARK_MAX_BRIGHTNESS);
+                    else if (baseBrightness[ch][i] == 0 && nextBrightDir < 0)
+                        nextBrightDir = darkBrightnessTransition(1, 0);
 
-                if (baseBrightness[ch][i] >= DARK_MAX_BRIGHTNESS && nextBrightDir > 0)
-                    nextBrightDir = darkBrightnessTransition(-1, DARK_MAX_BRIGHTNESS);
-                else if (baseBrightness[ch][i] == 0 && nextBrightDir < 0)
-                    nextBrightDir = darkBrightnessTransition(1, 0);
+                    // Gate: dark LED cannot turn on if at cap
+                    if (!isActive && nextBrightDir > 0 && activeCount >= DARK_MAX_ACTIVE_LEDS)
+                        nextBrightDir = 0;
 
-                brightDir[ch][i] = nextBrightDir;
-                baseBrightness[ch][i] = (uint8_t)constrain((int)baseBrightness[ch][i] + nextBrightDir * 2, 0, DARK_MAX_BRIGHTNESS);
+                    brightDir[ch][i] = nextBrightDir;
+                    // Step 1 (not 2) — 2x slower than before, combined with every-other-frame = 4x
+                    baseBrightness[ch][i] = (uint8_t)constrain((int)baseBrightness[ch][i] + nextBrightDir, 0, DARK_MAX_BRIGHTNESS);
 
-                // Saturation random walk (identical to base layer)
-                int8_t nextSatDir = markovTransitionSaturationBiased(satDir[ch][i], baseSaturation[ch][i]);
+                    // Track activeCount as LEDs switch on/off this frame
+                    bool nowActive = baseBrightness[ch][i] > 0;
+                    if (!isActive && nowActive) activeCount++;
+                    else if (isActive && !nowActive) activeCount--;
+                }
 
-                if (baseSaturation[ch][i] >= 255 && nextSatDir > 0)
-                    nextSatDir = markovTransitionSaturationBiased(-1, 255);
-                else if (baseSaturation[ch][i] <= MIN_SATURATION && nextSatDir < 0)
-                    nextSatDir = markovTransitionSaturationBiased(1, MIN_SATURATION);
-
-                satDir[ch][i] = nextSatDir;
-                baseSaturation[ch][i] = (uint8_t)constrain((int)baseSaturation[ch][i] + nextSatDir * 2, MIN_SATURATION, 255);
+                // Hue and saturation are fixed — only brightness walks
             }
         }
     }

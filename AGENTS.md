@@ -79,6 +79,7 @@ git commit -m "WIP: <brief description of change>"
    - Read the value of `PAIRING_CONFIG_ID` from `src/pairing_config.h`
    - After creating the commit, tag it as `release-0xHH` where HH is the HEX representation
    - Example: If `PAIRING_CONFIG_ID` is `20`, tag as `release-0x14`
+   - If the tag already exists, force-update it to the new commit: `git tag -f release-0xHH`
    - This tracks working commits matched with PAIRING_CONFIG_ID/QR code
 3. **If no:**
    - Proceed with commit but do not tag

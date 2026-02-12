@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <FastLED.h>
+#include "pairing_config.h"
 
 // Forward declaration
 struct DEV_LedChannel;
@@ -14,7 +15,9 @@ enum class NotificationPattern {
     PATTERN_NONE,           // No pattern (restore previous state)
     PATTERN_SOLID,          // Solid color on first NOTIFICATION_LEDS LEDs
     PATTERN_SEQUENTIAL,     // Sequential flash through first NOTIFICATION_LEDS LEDs
-    PATTERN_WARNING         // Warning pattern: blue base, one purple LED cycling
+    PATTERN_WARNING,        // Warning pattern: blue base, one purple LED cycling
+    PATTERN_PAIRING_ID,     // Static binary display of PAIRING_CONFIG_ID on LEDs 0-7
+    PATTERN_PAIRING_ID_BLINK // Blinking binary display (for identify use)
 };
 
 // Notification state for all channels
@@ -84,6 +87,22 @@ public:
                 }
                 break;
 
+            case NotificationPattern::PATTERN_PAIRING_ID:
+                renderPairingId(ch1, ch2, ch3, ch4);
+                // Static — no stepping
+                break;
+
+            case NotificationPattern::PATTERN_PAIRING_ID_BLINK:
+                renderPairingIdBlink(ch1, ch2, ch3, ch4);
+                currentStep = (currentStep + 1) % 2;
+                if (currentStep == 0 && maxCycles > 0) {
+                    cycleCount++;
+                    if (cycleCount >= maxCycles) {
+                        return false;
+                    }
+                }
+                break;
+
             default:
                 break;
         }
@@ -144,6 +163,35 @@ private:
             ch2[i] = color;
             ch3[i] = color;
             ch4[i] = color;
+        }
+    }
+
+    // Display PAIRING_CONFIG_ID as binary on LEDs 0-7
+    // Bit 0 → LED[0] (LSB), bit 7 → LED[7] (MSB)
+    // Bit=0: blue at 50%, Bit=1: purple at 100%
+    void renderPairingId(CRGB* ch1, CRGB* ch2, CRGB* ch3, CRGB* ch4) {
+        static const CRGB bitOff(0, 0, 128);     // Blue at 50%
+        static const CRGB bitOn(255, 0, 0);      // Red at 100%
+
+        for (int i = 0; i < NOTIFICATION_LEDS; i++) {
+            CRGB color = ((PAIRING_CONFIG_ID >> i) & 0x01) ? bitOn : bitOff;
+            ch1[i] = color;
+            ch2[i] = color;
+            ch3[i] = color;
+            ch4[i] = color;
+        }
+    }
+
+    void renderPairingIdBlink(CRGB* ch1, CRGB* ch2, CRGB* ch3, CRGB* ch4) {
+        if (currentStep % 2 == 0) {
+            renderPairingId(ch1, ch2, ch3, ch4);
+        } else {
+            for (int i = 0; i < NOTIFICATION_LEDS; i++) {
+                ch1[i] = CRGB::Black;
+                ch2[i] = CRGB::Black;
+                ch3[i] = CRGB::Black;
+                ch4[i] = CRGB::Black;
+            }
         }
     }
 

@@ -284,16 +284,17 @@ void updateButtonStateMachine() {
             } else if ((now - buttonPressStartMs) >= FACTORY_RESET_WARNING_MS) {
                 // Held for 10s total — start factory reset warning
                 buttonState = ButtonState::BTN_FACTORY_WARNING;
+                confirmStartMs = now;
                 Serial.println("10s hold detected - entering factory reset warning mode...");
                 notificationMgr->stop();
                 blankAllLEDs();
-                notificationMgr->start(NotificationPattern::PATTERN_WARNING, CRGB::Red, 300, 3);
+                notificationMgr->start(NotificationPattern::PATTERN_PAIRING_ID, CRGB::Black, 0, 0);
             }
             break;
 
         case ButtonState::BTN_FACTORY_WARNING:
-            // Check if warning animation completed (3 cycles done)
-            if (notificationMgr->getCycleCount() >= 3) {
+            // Show static pairing ID for 3 seconds, then proceed
+            if ((now - confirmStartMs) >= 10000) {
                 notificationMgr->stop();
 
                 if (buttonPressed) {

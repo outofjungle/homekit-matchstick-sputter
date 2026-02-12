@@ -5,6 +5,7 @@
 
 # PlatformIO binary location
 PIO := $(HOME)/.local/bin/pio
+PYTHON := $(HOME)/.local/pipx/venvs/platformio/bin/python
 
 # Default target
 all: build
@@ -47,7 +48,7 @@ test:
 # Generate unique HomeKit pairing code and QR ID
 generate-pairing:
 	@echo "Generating pairing configuration..."
-	python3 scripts/generate_pairing.py
+	$(PYTHON) scripts/generate_pairing.py
 
 # Show help
 help:

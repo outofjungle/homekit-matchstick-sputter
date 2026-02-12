@@ -4,6 +4,9 @@
 Creates src/pairing_config.h with a unique setup code, QR ID, and
 auto-incrementing PAIRING_CONFIG_ID. Run this once per device or
 whenever you want to rotate pairing credentials.
+
+Also generates docs/pairing_qr.png if qrcode and Pillow are installed:
+  pip install qrcode pillow
 """
 
 import random
@@ -11,8 +14,11 @@ import re
 import os
 
 HEADER_PATH = os.path.join(os.path.dirname(__file__), "..", "src", "pairing_config.h")
+QR_IMAGE_PATH = os.path.join(os.path.dirname(__file__), "..", "docs", "pairing_qr.png")
 
 INVALID_CODES = {str(d) * 8 for d in range(10)}  # 00000000 .. 99999999
+
+BASE36_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
 def generate_setup_code():
@@ -34,6 +40,81 @@ def read_current_config_id(path):
         text = f.read()
     m = re.search(r"#define\s+PAIRING_CONFIG_ID\s+(\d+)", text)
     return int(m.group(1)) if m else 0
+
+
+def gen_homekit_setup_uri(setup_code, setup_id, category=2, flags=2):
+    """Encode a HomeKit setup URI (X-HM://...) from pairing parameters.
+
+    Bit layout (46 bits total, MSB first):
+      - version   : 3 bits  (always 0)
+      - reserved  : 4 bits  (always 0)
+      - category  : 8 bits  (2 = bridge)
+      - flags     : 4 bits  (2 = IP, no BLE/MFi)
+      - password  : 27 bits (8-digit setup code as integer)
+    """
+    password = int(setup_code)
+    payload = (
+        (0 << 43)          # version (3 bits)
+        | (0 << 39)        # reserved (4 bits)
+        | (category << 31) # category (8 bits)
+        | (flags << 27)    # flags (4 bits)
+        | password         # password (27 bits)
+    )
+
+    # Base36-encode into exactly 9 characters (left-padded with '0')
+    encoded = []
+    n = payload
+    for _ in range(9):
+        encoded.append(BASE36_CHARS[n % 36])
+        n //= 36
+    encoded.reverse()
+    encoded_str = "".join(encoded)
+
+    return f"X-HM://{encoded_str}{setup_id}"
+
+
+def generate_qr_image(uri, formatted_code, output_path):
+    """Generate a QR code PNG with the setup code displayed below it."""
+    try:
+        import qrcode
+        from PIL import Image, ImageDraw, ImageFont
+    except ImportError:
+        print("  (QR image skipped — install with: pip install qrcode pillow)")
+        return False
+
+    # Generate QR code
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(uri)
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+
+    # Add setup code text below the QR code
+    padding = 20
+    text_height = 50
+    new_height = qr_img.height + text_height + padding
+    combined = Image.new("RGB", (qr_img.width, new_height), "white")
+    combined.paste(qr_img, (0, 0))
+
+    draw = ImageDraw.Draw(combined)
+    try:
+        font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 28)
+    except (IOError, OSError):
+        font = ImageFont.load_default()
+
+    text = formatted_code
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_w = bbox[2] - bbox[0]
+    x = (combined.width - text_w) // 2
+    y = qr_img.height + padding // 2
+    draw.text((x, y), text, fill="black", font=font)
+
+    combined.save(output_path)
+    return True
 
 
 def main():
@@ -60,6 +141,14 @@ def main():
     print(f"  Setup ID:   {setup_id}")
     print(f"  Config ID:  {config_id}")
     print(f"  Written to: {os.path.abspath(HEADER_PATH)}")
+
+    # Generate HomeKit setup URI and QR image
+    uri = gen_homekit_setup_uri(setup_code, setup_id, category=2, flags=2)
+    print(f"  Setup URI:  {uri}")
+
+    qr_abs = os.path.abspath(QR_IMAGE_PATH)
+    if generate_qr_image(uri, formatted, QR_IMAGE_PATH):
+        print(f"  QR image:   {qr_abs}")
 
 
 if __name__ == "__main__":

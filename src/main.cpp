@@ -402,28 +402,28 @@ void setup() {
     new SpanAccessory();
         new Service::AccessoryInformation();
             new Characteristic::Identify();
-            new Characteristic::Name("Channel 1");
+            new Characteristic::Name("Sputter One");
         channel1Service = new DEV_LedChannel(ledChannel1, NUM_LEDS_PER_CHANNEL, 1);
 
     // Create Channel 2 Accessory
     new SpanAccessory();
         new Service::AccessoryInformation();
             new Characteristic::Identify();
-            new Characteristic::Name("Channel 2");
+            new Characteristic::Name("Sputter Two");
         channel2Service = new DEV_LedChannel(ledChannel2, NUM_LEDS_PER_CHANNEL, 2);
 
     // Create Channel 3 Accessory
     new SpanAccessory();
         new Service::AccessoryInformation();
             new Characteristic::Identify();
-            new Characteristic::Name("Channel 3");
+            new Characteristic::Name("Sputter Three");
         channel3Service = new DEV_LedChannel(ledChannel3, NUM_LEDS_PER_CHANNEL, 3);
 
     // Create Channel 4 Accessory
     new SpanAccessory();
         new Service::AccessoryInformation();
             new Characteristic::Identify();
-            new Characteristic::Name("Channel 4");
+            new Characteristic::Name("Sputter Four");
         channel4Service = new DEV_LedChannel(ledChannel4, NUM_LEDS_PER_CHANNEL, 4);
 
     // Configure notification manager with channel services

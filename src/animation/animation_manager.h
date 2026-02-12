@@ -121,6 +121,25 @@ public:
         }
     }
 
+    // Toggle between normal and inverted animation
+    // NONE <-> RAINBOW for modes without an inverted pair
+    void toggleInverted() {
+        constexpr int offset = static_cast<int>(AnimationMode::ANIM_BASE)
+                             - static_cast<int>(AnimationMode::ANIM_INVERTED_BASE);
+        int mode = static_cast<int>(currentMode);
+
+        if (currentMode == AnimationMode::ANIM_NONE) {
+            setMode(AnimationMode::ANIM_RAINBOW);
+        } else if (currentMode == AnimationMode::ANIM_RAINBOW) {
+            setMode(AnimationMode::ANIM_NONE);
+        } else if (mode >= static_cast<int>(AnimationMode::ANIM_INVERTED_BASE)
+                && mode <= static_cast<int>(AnimationMode::ANIM_INVERTED_SQUARE_TWINKLE)) {
+            setMode(static_cast<AnimationMode>(mode + offset));
+        } else {
+            setMode(static_cast<AnimationMode>(mode - offset));
+        }
+    }
+
     // Cycle to next animation mode
     void cycleMode() {
         AnimationMode nextMode = static_cast<AnimationMode>(

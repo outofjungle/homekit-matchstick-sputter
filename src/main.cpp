@@ -282,7 +282,8 @@ void updateButtonStateMachine() {
         case ButtonState::BTN_PRESSED:
             if (buttonJustReleased) {
                 // Released before 3s — short press placeholder
-                Serial.println("GPIO39 short press");
+                animationMgr->toggleInverted();
+                Serial.println("GPIO39 short press: toggle inverted");
                 buttonState = ButtonState::BTN_IDLE;
             } else if ((now - buttonPressStartMs) >= AP_ACTIVATE_MS) {
                 // Held for 3s — show solid purple immediately, AP is ready

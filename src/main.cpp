@@ -55,6 +55,24 @@ void applyChannelDefaults();
 void updateAnimationButton();
 void activateAPMode();
 
+// AccessoryInformation service with Identify callback
+// Subclasses Service::AccessoryInformation so update() fires when Identify is written
+struct DEV_Identify : Service::AccessoryInformation {
+    DEV_Identify(const char* name) : Service::AccessoryInformation() {
+        new Characteristic::Identify();
+        new Characteristic::Name(name);
+    }
+
+    boolean update() override {
+        Serial.println("HomeKit Identify triggered");
+        if (notificationMgr) {
+            blankAllLEDs();
+            notificationMgr->start(NotificationPattern::PATTERN_PAIRING_ID_BLINK, CRGB::Black, 400, 5);
+        }
+        return true;
+    }
+};
+
 // Update animation button (GPIO0) - state machine with long press support
 void updateAnimationButton() {
     bool currentButtonState = digitalRead(PIN_BUTTON_ANIM);
@@ -401,30 +419,22 @@ void setup() {
 
     // Create Channel 1 Accessory
     new SpanAccessory();
-        new Service::AccessoryInformation();
-            new Characteristic::Identify();
-            new Characteristic::Name("Sputter One");
+        new DEV_Identify("Sputter One");
         channel1Service = new DEV_LedChannel(ledChannel1, NUM_LEDS_PER_CHANNEL, 1);
 
     // Create Channel 2 Accessory
     new SpanAccessory();
-        new Service::AccessoryInformation();
-            new Characteristic::Identify();
-            new Characteristic::Name("Sputter Two");
+        new DEV_Identify("Sputter Two");
         channel2Service = new DEV_LedChannel(ledChannel2, NUM_LEDS_PER_CHANNEL, 2);
 
     // Create Channel 3 Accessory
     new SpanAccessory();
-        new Service::AccessoryInformation();
-            new Characteristic::Identify();
-            new Characteristic::Name("Sputter Three");
+        new DEV_Identify("Sputter Three");
         channel3Service = new DEV_LedChannel(ledChannel3, NUM_LEDS_PER_CHANNEL, 3);
 
     // Create Channel 4 Accessory
     new SpanAccessory();
-        new Service::AccessoryInformation();
-            new Characteristic::Identify();
-            new Characteristic::Name("Sputter Four");
+        new DEV_Identify("Sputter Four");
         channel4Service = new DEV_LedChannel(ledChannel4, NUM_LEDS_PER_CHANNEL, 4);
 
     // Configure notification manager with channel services
@@ -452,9 +462,10 @@ void loop() {
 
     // Update notification animations if active (highest priority)
     if (notificationMgr->isActive()) {
-        notificationMgr->update(NUM_LEDS_PER_CHANNEL);
-        // Animation completion is handled in the button state machine
-        // (checking getCycleCount() in BTN_NOTIFICATION state)
+        bool running = notificationMgr->update(NUM_LEDS_PER_CHANNEL);
+        if (!running) {
+            notificationMgr->stop();
+        }
     }
 
     // Update ambient animations if active (only if notifications not active)

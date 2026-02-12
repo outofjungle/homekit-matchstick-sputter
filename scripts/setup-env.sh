@@ -43,6 +43,13 @@ echo "==> Installing pip packages into PlatformIO venv..."
     qrcode \
     pillow
 
+echo "==> Installing clangd (clang LSP)..."
+if brew list llvm &>/dev/null; then
+    echo "    llvm already installed, skipping."
+else
+    brew install llvm
+fi
+
 echo "==> Verifying PlatformIO installation..."
 "$HOME/.local/bin/pio" --version
 

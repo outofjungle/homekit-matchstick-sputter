@@ -1,7 +1,7 @@
 # Makefile for homekit-matchstick-sputter
 # PlatformIO wrapper for common development tasks
 
-.PHONY: all build clean erase flash monitor flash-monitor test help
+.PHONY: all build clean erase flash monitor flash-monitor test generate-pairing help
 
 # PlatformIO binary location
 PIO := $(HOME)/.local/bin/pio
@@ -44,6 +44,11 @@ test:
 	@echo "Running native tests..."
 	$(PIO) test -e native
 
+# Generate unique HomeKit pairing code and QR ID
+generate-pairing:
+	@echo "Generating pairing configuration..."
+	python3 scripts/generate_pairing.py
+
 # Show help
 help:
 	@echo "Available targets:"
@@ -53,5 +58,6 @@ help:
 	@echo "  make flash         - Flash firmware to device"
 	@echo "  make monitor       - Monitor serial output"
 	@echo "  make flash-monitor - Flash and start monitoring"
-	@echo "  make test          - Run native tests"
-	@echo "  make help          - Show this help message"
+	@echo "  make test             - Run native tests"
+	@echo "  make generate-pairing - Generate unique HomeKit pairing credentials"
+	@echo "  make help             - Show this help message"

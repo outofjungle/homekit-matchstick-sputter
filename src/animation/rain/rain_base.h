@@ -223,7 +223,7 @@ private:
     {
         for (int i = 0; i < numLeds; i++)
         {
-            CRGB baseColor = computeBaseColor(channelIndex, i);
+            CRGB baseColor = getBaseLedColor(channelIndex, i);
 
             // Check if any raindrop covers this LED
             CRGB finalColor = baseColor;

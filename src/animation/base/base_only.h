@@ -64,7 +64,7 @@ private:
     {
         for (int i = 0; i < (int)numLeds; i++)
         {
-            leds[i] = computeBaseColor(channelIndex, i);
+            leds[i] = getBaseLedColor(channelIndex, i);
         }
     }
 };

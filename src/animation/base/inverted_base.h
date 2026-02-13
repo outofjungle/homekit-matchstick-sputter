@@ -1,13 +1,14 @@
 #pragma once
 
 #include "base_only.h"
+#include "../sparkle_base_layer.h"
 
 // Inverted Base Animation
-// Dark shimmer: hue and saturation walk identically to the normal base layer,
-// but brightness is power-law-biased toward near-black. Most LEDs stay under
-// ~5% brightness (13/255); occasional drift up to DARK_MAX_BRIGHTNESS (~20%).
-// No bright flares — the strip stays dim at all times.
-class InvertedBaseAnimation : public BaseOnlyAnimation
+// Dark-field sparkle: 20% of LEDs twinkle with sin8 lifecycle humps.
+// Each LED has a fixed birth hue and birth saturation (power-law biased toward
+// high saturation). Both brightness and saturation follow the same sin8 hump,
+// so LEDs fade up from black with their color and fade back to black together.
+class InvertedBaseAnimation : public BaseOnlyAnimation, public SparkleBaseLayer
 {
 public:
     const char *getName() const override
@@ -17,7 +18,7 @@ public:
 
     void begin() override
     {
-        initInvertedBaseLayer();
+        initSparkleBaseLayer(channelHue);
         frameAccumulator = 0;
     }
 
@@ -28,7 +29,7 @@ public:
         if (frameAccumulator >= FRAME_MS)
         {
             frameAccumulator -= FRAME_MS;
-            updateInvertedBaseLayer();
+            updateSparkleBaseLayer(channelHue);
             return true;
         }
 
@@ -38,5 +39,11 @@ public:
     void reset() override
     {
         begin();
+    }
+
+protected:
+    CRGB getBaseLedColor(int channelIndex, int ledIndex) const override
+    {
+        return computeSparkleColor(channelIndex, ledIndex);
     }
 };

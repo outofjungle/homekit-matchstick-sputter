@@ -1,19 +1,17 @@
 #pragma once
 
 #include "runner_base.h"
+#include "../sparkle_base_layer.h"
 
 // Base class for inverted-base runner animations
-// Dark-shimmer base layer (power-law-biased toward black) with runner overlay
-class InvertedRunnerBase : public RunnerAnimationBase
+// Dark-field sparkle base layer with runner overlay
+class InvertedRunnerBase : public RunnerAnimationBase, public SparkleBaseLayer
 {
 public:
-    // NOTE: This begin() intentionally duplicates RunnerAnimationBase::reset() logic, but calls
-    // initInvertedBaseLayer() instead of resetBaseLayer(). This is accepted duplication — the
-    // inheritance design requires the swap to apply dark-shimmer brightness initialization.
     void begin() override
     {
         gaussianLUT.compute(GAUSSIAN_VARIANCE);
-        initInvertedBaseLayer();
+        initSparkleBaseLayer(channelHue);
         for (int ch = 0; ch < 4; ch++)
         {
             for (int r = 0; r < MAX_RUNNER_SLOTS; r++)
@@ -32,7 +30,7 @@ public:
         if (frameAccumulator >= FRAME_MS)
         {
             frameAccumulator -= FRAME_MS;
-            updateInvertedBaseLayer();
+            updateSparkleBaseLayer(channelHue);
             updateRunners();
             return true;
         }
@@ -42,5 +40,11 @@ public:
     void reset() override
     {
         begin();
+    }
+
+protected:
+    CRGB getBaseLedColor(int channelIndex, int ledIndex) const override
+    {
+        return computeSparkleColor(channelIndex, ledIndex);
     }
 };

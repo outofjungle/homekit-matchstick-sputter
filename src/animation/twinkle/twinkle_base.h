@@ -307,7 +307,7 @@ private:
 
             if (activeTwinkle == nullptr)
             {
-                leds[i] = computeBaseColor(channelIndex, i);
+                leds[i] = getBaseLedColor(channelIndex, i);
             }
             else
             {

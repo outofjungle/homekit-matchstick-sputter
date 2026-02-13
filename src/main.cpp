@@ -108,11 +108,10 @@ void updateAnimationButton() {
         case AnimButtonState::ANIM_BTN_PRESSED:
             // Check if long press threshold reached
             if (buttonPressed && (now - animButtonPressStartMs) >= ANIM_BUTTON_LONG_PRESS_MS) {
-                // Long press: reset to defaults immediately
-                Serial.println("Animation button long press - resetting to defaults");
-                applyChannelDefaults();
+                // Long press: toggle inverted
+                Serial.println("Animation button long press - toggling inverted");
                 if (animationMgr) {
-                    animationMgr->setMode(AnimationMode::ANIM_NONE);
+                    animationMgr->toggleInverted();
                 }
                 animButtonState = AnimButtonState::ANIM_BTN_IDLE;
             }
@@ -281,9 +280,12 @@ void updateButtonStateMachine() {
 
         case ButtonState::BTN_PRESSED:
             if (buttonJustReleased) {
-                // Released before 3s — short press placeholder
-                animationMgr->toggleInverted();
-                Serial.println("GPIO39 short press: toggle inverted");
+                // Released before 3s — reset to defaults
+                applyChannelDefaults();
+                if (animationMgr) {
+                    animationMgr->setMode(AnimationMode::ANIM_NONE);
+                }
+                Serial.println("GPIO39 short press: reset to defaults");
                 buttonState = ButtonState::BTN_IDLE;
             } else if ((now - buttonPressStartMs) >= AP_ACTIVATE_MS) {
                 // Held for 3s — show solid purple immediately, AP is ready

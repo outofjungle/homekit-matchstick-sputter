@@ -1,18 +1,17 @@
 #pragma once
 
 #include "twinkle_base.h"
+#include "../sparkle_base_layer.h"
 
 // Base class for inverted-base twinkle animations
-// Dark-shimmer base layer (power-law-biased toward black) with twinkle overlay
-class InvertedTwinkleBase : public TwinkleAnimationBase
+// Dark-field sparkle base layer with twinkle overlay
+class InvertedTwinkleBase : public TwinkleAnimationBase, public SparkleBaseLayer
 {
 public:
-    // NOTE: This begin() intentionally duplicates TwinkleAnimationBase::reset() logic, but calls
-    // initInvertedBaseLayer() instead of resetBaseLayer(). This is accepted duplication — the
-    // inheritance design requires the swap to apply dark-shimmer brightness initialization.
     void begin() override
     {
-        initInvertedBaseLayer();
+        memset(baseBrightness, 0, sizeof(baseBrightness));
+        initSparkleBaseLayer(channelHue);
         for (int ch = 0; ch < 4; ch++)
         {
             for (int t = 0; t < MAX_TWINKLE_SLOTS; t++)
@@ -32,7 +31,7 @@ public:
         if (frameAccumulator >= FRAME_MS)
         {
             frameAccumulator -= FRAME_MS;
-            updateInvertedBaseLayer();
+            updateSparkleBaseLayer(channelHue);
             updateTwinkles();
             return true;
         }
@@ -42,5 +41,11 @@ public:
     void reset() override
     {
         begin();
+    }
+
+protected:
+    CRGB getBaseLedColor(int channelIndex, int ledIndex) const override
+    {
+        return computeSparkleColor(channelIndex, ledIndex);
     }
 };

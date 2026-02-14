@@ -10,8 +10,6 @@ Scan this code in the Apple Home app to pair the device:
 
 ![Pairing QR Code](docs/img/pairing_qr.png)
 
-**Setup code:** `364-94-505`
-
 ---
 
 ## Setup
@@ -33,7 +31,7 @@ Once the device is connected to WiFi:
 
 1. Open the **Apple Home** app on your iPhone or iPad
 2. Tap **+** → **Add Accessory**
-3. Scan the QR code above (or enter setup code `364-94-505` manually)
+3. Scan the QR code above
 4. If prompted about an "Uncertified Accessory", tap **Add Anyway**
 5. The device appears as **"Matchstick 0x02"** — a bridge with 4 lights
 6. Assign lights to rooms and tap **Done**
@@ -154,7 +152,7 @@ These modes use a bright, undulating base layer where all 200 LEDs glow continuo
 
 Each verified firmware build has a `PAIRING_CONFIG_ID` and a corresponding git tag.
 
-**Current release:** `PAIRING_CONFIG_ID = 7` → git tag `release-0x07`
+**Current release:** `PAIRING_CONFIG_ID = 8` → git tag `release-0x08`
 
 ### Reading the Version from LEDs
 
@@ -165,12 +163,13 @@ During the factory reset warning animation, the first 8 LEDs display `PAIRING_CO
 
 ### Finding the QR Code for a Specific Release
 
-Each release tag tracks the exact pairing QR code used at that build:
+Each release tag tracks the exact pairing QR code used at that build. To view the QR code for a specific release, navigate to the tag on GitHub:
 
-```bash
-git checkout release-0x07
-# docs/img/pairing_qr.png now shows the QR code for PAIRING_CONFIG_ID=7
 ```
+https://github.com/outofjungle/homekit-matchstick-sputter/blob/release-0x08/docs/img/pairing_qr.png
+```
+
+Replace `release-0x08` with the tag for the firmware version you're looking up.
 
 ---
 

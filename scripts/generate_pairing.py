@@ -79,8 +79,11 @@ def generate_qr_image(uri, formatted_code, output_path):
         import qrcode
         from PIL import Image, ImageDraw, ImageFont
     except ImportError:
-        print("  (QR image skipped — install with: pip install qrcode pillow)")
-        return False
+        raise SystemExit(
+            "ERROR: qrcode and/or Pillow not installed.\n"
+            "The QR image must stay in sync with pairing_config.h.\n"
+            "Install with: pip install qrcode pillow"
+        )
 
     # Generate QR code
     qr = qrcode.QRCode(
@@ -114,7 +117,6 @@ def generate_qr_image(uri, formatted_code, output_path):
     draw.text((x, y), text, fill="black", font=font)
 
     combined.save(output_path)
-    return True
 
 
 def main():
@@ -147,8 +149,8 @@ def main():
     print(f"  Setup URI:  {uri}")
 
     qr_abs = os.path.abspath(QR_IMAGE_PATH)
-    if generate_qr_image(uri, formatted, QR_IMAGE_PATH):
-        print(f"  QR image:   {qr_abs}")
+    generate_qr_image(uri, formatted, QR_IMAGE_PATH)
+    print(f"  QR image:   {qr_abs}")
 
 
 if __name__ == "__main__":

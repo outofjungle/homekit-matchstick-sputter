@@ -31,13 +31,22 @@ struct DEV_LedChannel : Service::LightBulb {
     unsigned long stateEnteredMs = 0;
     bool pendingHomeKitSync = false;
 
-    // Desired state (what we want to show when not in NOTIFICATION/BOOT_FLASH)
+    // Read accessors for desired state (used by AnimationManager)
+    bool getDesiredPower()      const { return desired.power; }
+    int  getDesiredHue()        const { return desired.hue; }
+    int  getDesiredSaturation() const { return desired.saturation; }
+    int  getDesiredBrightness() const { return desired.brightness; }
+
+private:
+    // Desired state (what we want to show when not in NOTIFICATION/ANIMATION)
     struct {
         bool power;
         int hue;
         int saturation;
         int brightness;
     } desired;
+
+public:
 
     // Constructor - initializes the LightBulb service with HSV characteristics
     DEV_LedChannel(CRGB* ledArray, uint16_t count, int channelNum)

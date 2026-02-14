@@ -320,16 +320,16 @@ private:
         // Set channel hues and brightnesses from HomeKit state (polymorphic dispatch)
         if (channelService1 && channelService2 && channelService3 && channelService4) {
             currentAnimation->setChannelHues(
-                channelService1->desired.hue,
-                channelService2->desired.hue,
-                channelService3->desired.hue,
-                channelService4->desired.hue
+                channelService1->getDesiredHue(),
+                channelService2->getDesiredHue(),
+                channelService3->getDesiredHue(),
+                channelService4->getDesiredHue()
             );
             currentAnimation->setChannelBrightnesses(
-                channelService1->desired.brightness,
-                channelService2->desired.brightness,
-                channelService3->desired.brightness,
-                channelService4->desired.brightness
+                channelService1->getDesiredBrightness(),
+                channelService2->getDesiredBrightness(),
+                channelService3->getDesiredBrightness(),
+                channelService4->getDesiredBrightness()
             );
         }
 
@@ -364,16 +364,16 @@ private:
         // Update animation hues and brightnesses from current HomeKit state (polymorphic dispatch)
         if (channelService1 && channelService2 && channelService3 && channelService4) {
             currentAnimation->setChannelHues(
-                channelService1->desired.hue,
-                channelService2->desired.hue,
-                channelService3->desired.hue,
-                channelService4->desired.hue
+                channelService1->getDesiredHue(),
+                channelService2->getDesiredHue(),
+                channelService3->getDesiredHue(),
+                channelService4->getDesiredHue()
             );
             currentAnimation->setChannelBrightnesses(
-                channelService1->desired.brightness,
-                channelService2->desired.brightness,
-                channelService3->desired.brightness,
-                channelService4->desired.brightness
+                channelService1->getDesiredBrightness(),
+                channelService2->getDesiredBrightness(),
+                channelService3->getDesiredBrightness(),
+                channelService4->getDesiredBrightness()
             );
         }
 
@@ -381,16 +381,16 @@ private:
         currentAnimation->render(channel1, channel2, channel3, channel4, numLedsPerChannel);
 
         // Respect HomeKit power state: turn off channels that are OFF
-        if (channelService1 && !channelService1->desired.power) {
+        if (channelService1 && !channelService1->getDesiredPower()) {
             fill_solid(channel1, numLedsPerChannel, CRGB::Black);
         }
-        if (channelService2 && !channelService2->desired.power) {
+        if (channelService2 && !channelService2->getDesiredPower()) {
             fill_solid(channel2, numLedsPerChannel, CRGB::Black);
         }
-        if (channelService3 && !channelService3->desired.power) {
+        if (channelService3 && !channelService3->getDesiredPower()) {
             fill_solid(channel3, numLedsPerChannel, CRGB::Black);
         }
-        if (channelService4 && !channelService4->desired.power) {
+        if (channelService4 && !channelService4->getDesiredPower()) {
             fill_solid(channel4, numLedsPerChannel, CRGB::Black);
         }
     }

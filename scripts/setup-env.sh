@@ -36,7 +36,7 @@ fi
 PIO_PYTHON="$HOME/.local/pipx/venvs/platformio/bin/python"
 
 echo "==> Installing pip packages into PlatformIO venv..."
-"$PIO_PYTHON" -m pip install --quiet \
+"$PIO_PYTHON" -m pip install --quiet --upgrade \
     littlefs-python \
     fatfs-ng \
     pyyaml \

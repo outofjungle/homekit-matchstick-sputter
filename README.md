@@ -161,7 +161,7 @@ During the factory reset warning animation, the first 8 LEDs display `PAIRING_CO
 - **Blue LED** = bit 0
 - LED 1 = MSB (bit 7), LED 8 = LSB (bit 0)
 
-**[Use the interactive decoder →](https://outofjungle.github.io/homekit-matchstick-sputter/)**
+<a href="https://outofjungle.github.io/homekit-matchstick-sputter/" target="_blank" rel="noopener noreferrer"><strong>Use the interactive decoder →</strong></a>
 _(or open `docs/index.html` locally)_
 
 ### Finding the QR Code for a Specific Release

@@ -4,14 +4,6 @@ A 4-channel HomeKit LED controller based on the M5Stack Stamp Pico (ESP32). Cont
 
 ---
 
-## Pairing QR Code
-
-Scan this code in the Apple Home app to pair the device:
-
-![Pairing QR Code](docs/img/pairing_qr.png)
-
----
-
 ## Setup
 
 ### WiFi Configuration
@@ -27,16 +19,21 @@ The device ships without WiFi credentials. To configure:
 
 ### HomeKit Pairing
 
-Once the device is connected to WiFi:
-
 1. Open the **Apple Home** app on your iPhone or iPad
 2. Tap **+** → **Add Accessory**
-3. Scan the QR code above
+3. Scan the QR code below
 4. If prompted about an "Uncertified Accessory", tap **Add Anyway**
 5. The device appears as **"Matchstick 0x02"** — a bridge with 4 lights
 6. Assign lights to rooms and tap **Done**
 
 You will see 4 light accessories: **Sputter One**, **Sputter Two**, **Sputter Three**, **Sputter Four**.
+
+#### Pairing QR Code
+
+![Pairing QR Code](docs/img/pairing_qr.png)
+
+> **QR code not working?** Try a [factory reset](#factory-reset) first to clear any previous pairings. If it still doesn't work, your device may be running a different firmware version — **[use the interactive decoder →](https://outofjungle.github.io/homekit-matchstick-sputter/)** to identify your version and find the matching QR code.
+
 
 ---
 

@@ -105,6 +105,9 @@ public:
         }
     }
 
+    AnimationManager(const AnimationManager&) = delete;
+    AnimationManager& operator=(const AnimationManager&) = delete;
+
     // Set channel service pointers (call after channel services are created)
     void setChannelServices(DEV_LedChannel* ch1, DEV_LedChannel* ch2, DEV_LedChannel* ch3, DEV_LedChannel* ch4) {
         channelService1 = ch1;
@@ -121,22 +124,46 @@ public:
         }
     }
 
-    // Toggle between normal and inverted animation
-    // NONE <-> RAINBOW for modes without an inverted pair
+    // Toggle between normal and inverted animation.
+    // NONE <-> RAINBOW for modes without an inverted pair.
+    // Explicit table avoids relying on enum ordinal layout.
     void toggleInverted() {
-        constexpr int offset = static_cast<int>(AnimationMode::ANIM_BASE)
-                             - static_cast<int>(AnimationMode::ANIM_INVERTED_BASE);
-        int mode = static_cast<int>(currentMode);
-
-        if (currentMode == AnimationMode::ANIM_NONE) {
-            setMode(AnimationMode::ANIM_RAINBOW);
-        } else if (currentMode == AnimationMode::ANIM_RAINBOW) {
-            setMode(AnimationMode::ANIM_NONE);
-        } else if (mode >= static_cast<int>(AnimationMode::ANIM_INVERTED_BASE)
-                && mode <= static_cast<int>(AnimationMode::ANIM_INVERTED_SQUARE_TWINKLE)) {
-            setMode(static_cast<AnimationMode>(mode + offset));
-        } else {
-            setMode(static_cast<AnimationMode>(mode - offset));
+        switch (currentMode) {
+            case AnimationMode::ANIM_NONE:                              setMode(AnimationMode::ANIM_RAINBOW); break;
+            case AnimationMode::ANIM_RAINBOW:                           setMode(AnimationMode::ANIM_NONE); break;
+            case AnimationMode::ANIM_INVERTED_BASE:                     setMode(AnimationMode::ANIM_BASE); break;
+            case AnimationMode::ANIM_BASE:                              setMode(AnimationMode::ANIM_INVERTED_BASE); break;
+            case AnimationMode::ANIM_INVERTED_MONOCHROMATIC_RUNNER:     setMode(AnimationMode::ANIM_MONOCHROMATIC_RUNNER); break;
+            case AnimationMode::ANIM_MONOCHROMATIC_RUNNER:              setMode(AnimationMode::ANIM_INVERTED_MONOCHROMATIC_RUNNER); break;
+            case AnimationMode::ANIM_INVERTED_MONOCHROMATIC_RAIN:       setMode(AnimationMode::ANIM_MONOCHROMATIC_RAIN); break;
+            case AnimationMode::ANIM_MONOCHROMATIC_RAIN:                setMode(AnimationMode::ANIM_INVERTED_MONOCHROMATIC_RAIN); break;
+            case AnimationMode::ANIM_INVERTED_MONOCHROMATIC_TWINKLE:    setMode(AnimationMode::ANIM_MONOCHROMATIC_TWINKLE); break;
+            case AnimationMode::ANIM_MONOCHROMATIC_TWINKLE:             setMode(AnimationMode::ANIM_INVERTED_MONOCHROMATIC_TWINKLE); break;
+            case AnimationMode::ANIM_INVERTED_COMPLEMENTARY_RUNNER:     setMode(AnimationMode::ANIM_COMPLEMENTARY_RUNNER); break;
+            case AnimationMode::ANIM_COMPLEMENTARY_RUNNER:              setMode(AnimationMode::ANIM_INVERTED_COMPLEMENTARY_RUNNER); break;
+            case AnimationMode::ANIM_INVERTED_COMPLEMENTARY_RAIN:       setMode(AnimationMode::ANIM_COMPLEMENTARY_RAIN); break;
+            case AnimationMode::ANIM_COMPLEMENTARY_RAIN:                setMode(AnimationMode::ANIM_INVERTED_COMPLEMENTARY_RAIN); break;
+            case AnimationMode::ANIM_INVERTED_COMPLEMENTARY_TWINKLE:    setMode(AnimationMode::ANIM_COMPLEMENTARY_TWINKLE); break;
+            case AnimationMode::ANIM_COMPLEMENTARY_TWINKLE:             setMode(AnimationMode::ANIM_INVERTED_COMPLEMENTARY_TWINKLE); break;
+            case AnimationMode::ANIM_INVERTED_SPLIT_COMPLEMENTARY_RUNNER: setMode(AnimationMode::ANIM_SPLIT_COMPLEMENTARY_RUNNER); break;
+            case AnimationMode::ANIM_SPLIT_COMPLEMENTARY_RUNNER:        setMode(AnimationMode::ANIM_INVERTED_SPLIT_COMPLEMENTARY_RUNNER); break;
+            case AnimationMode::ANIM_INVERTED_SPLIT_COMPLEMENTARY_RAIN: setMode(AnimationMode::ANIM_SPLIT_COMPLEMENTARY_RAIN); break;
+            case AnimationMode::ANIM_SPLIT_COMPLEMENTARY_RAIN:          setMode(AnimationMode::ANIM_INVERTED_SPLIT_COMPLEMENTARY_RAIN); break;
+            case AnimationMode::ANIM_INVERTED_SPLIT_COMPLEMENTARY_TWINKLE: setMode(AnimationMode::ANIM_SPLIT_COMPLEMENTARY_TWINKLE); break;
+            case AnimationMode::ANIM_SPLIT_COMPLEMENTARY_TWINKLE:       setMode(AnimationMode::ANIM_INVERTED_SPLIT_COMPLEMENTARY_TWINKLE); break;
+            case AnimationMode::ANIM_INVERTED_TRIADIC_RUNNER:           setMode(AnimationMode::ANIM_TRIADIC_RUNNER); break;
+            case AnimationMode::ANIM_TRIADIC_RUNNER:                    setMode(AnimationMode::ANIM_INVERTED_TRIADIC_RUNNER); break;
+            case AnimationMode::ANIM_INVERTED_TRIADIC_RAIN:             setMode(AnimationMode::ANIM_TRIADIC_RAIN); break;
+            case AnimationMode::ANIM_TRIADIC_RAIN:                      setMode(AnimationMode::ANIM_INVERTED_TRIADIC_RAIN); break;
+            case AnimationMode::ANIM_INVERTED_TRIADIC_TWINKLE:          setMode(AnimationMode::ANIM_TRIADIC_TWINKLE); break;
+            case AnimationMode::ANIM_TRIADIC_TWINKLE:                   setMode(AnimationMode::ANIM_INVERTED_TRIADIC_TWINKLE); break;
+            case AnimationMode::ANIM_INVERTED_SQUARE_RUNNER:            setMode(AnimationMode::ANIM_SQUARE_RUNNER); break;
+            case AnimationMode::ANIM_SQUARE_RUNNER:                     setMode(AnimationMode::ANIM_INVERTED_SQUARE_RUNNER); break;
+            case AnimationMode::ANIM_INVERTED_SQUARE_RAIN:              setMode(AnimationMode::ANIM_SQUARE_RAIN); break;
+            case AnimationMode::ANIM_SQUARE_RAIN:                       setMode(AnimationMode::ANIM_INVERTED_SQUARE_RAIN); break;
+            case AnimationMode::ANIM_INVERTED_SQUARE_TWINKLE:           setMode(AnimationMode::ANIM_SQUARE_TWINKLE); break;
+            case AnimationMode::ANIM_SQUARE_TWINKLE:                    setMode(AnimationMode::ANIM_INVERTED_SQUARE_TWINKLE); break;
+            default: break;
         }
     }
 

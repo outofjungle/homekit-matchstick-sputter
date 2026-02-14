@@ -9,7 +9,7 @@ Also generates docs/img/pairing_qr.png if qrcode and Pillow are installed:
   pip install qrcode pillow
 """
 
-import random
+import secrets
 import re
 import os
 
@@ -23,14 +23,14 @@ BASE36_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 def generate_setup_code():
     while True:
-        code = "".join(str(random.randint(0, 9)) for _ in range(8))
+        code = "".join(str(secrets.randbelow(10)) for _ in range(8))
         if code not in INVALID_CODES:
             return code
 
 
 def generate_setup_id():
     chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    return "".join(random.choice(chars) for _ in range(4))
+    return "".join(secrets.choice(chars) for _ in range(4))
 
 
 def read_current_config_id(path):

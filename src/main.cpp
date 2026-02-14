@@ -10,8 +10,8 @@
 // LED Arrays for all channels
 CRGB ledChannel1[NUM_LEDS_PER_CHANNEL];        // WS2811 on GPIO 26
 CRGB ledChannel2[NUM_LEDS_PER_CHANNEL];        // WS2811 on GPIO 18
-CRGB ledChannel3[NUM_LEDS_PER_CHANNEL];        // WS2811 on GPIO 25
-CRGB ledChannel4[NUM_LEDS_PER_CHANNEL];        // WS2811 on GPIO 19
+CRGB ledChannel3[NUM_LEDS_PER_CHANNEL];        // WS2811 on GPIO 19
+CRGB ledChannel4[NUM_LEDS_PER_CHANNEL];        // WS2811 on GPIO 25
 
 // LED Channel service instances (for boot flash handling)
 DEV_LedChannel* channel1Service = nullptr;

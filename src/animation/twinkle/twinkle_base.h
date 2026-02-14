@@ -54,6 +54,9 @@ public:
         uint8_t brightness;   // Current brightness (0-255)
         int8_t satDirection;  // +1 toward 255, -1 toward 0
         uint8_t frameCounter; // Frames in current phase
+        uint8_t crashLimit;   // Jittered duration for PHASE_CRASH_DOWN (1-3 frames)
+        uint8_t riseLimit;    // Jittered duration for PHASE_RISE_UP (1-3 frames)
+        uint8_t finalLimit;   // Jittered duration for PHASE_FINAL_CRASH (1-3 frames)
     };
 
     TwinkleAnimationBase()
@@ -101,8 +104,12 @@ public:
                 twinkles[ch][t].phase = PHASE_NONE;
                 twinkles[ch][t].ledIndex = 0;
                 twinkles[ch][t].frameCounter = 0;
+                twinkles[ch][t].crashLimit = CRASH_FRAMES;
+                twinkles[ch][t].riseLimit = RISE_FRAMES;
+                twinkles[ch][t].finalLimit = FINAL_CRASH_FRAMES;
             }
-            rampFrame[ch] = 0;
+            // Stagger ramp start per channel (~1.25s apart) to desync density fill-up
+            rampFrame[ch] = ch * (RAMP_FRAMES / 8);
         }
         frameAccumulator = 0;
     }
@@ -137,7 +144,7 @@ protected:
                     else
                         tw.brightness = 0;
 
-                    if (tw.frameCounter >= CRASH_FRAMES || tw.brightness == 0)
+                    if (tw.frameCounter >= tw.crashLimit || tw.brightness == 0)
                     {
                         // Transition to Phase 2: pick random saturation and harmony color
                         tw.phase = PHASE_RISE_UP;
@@ -168,7 +175,7 @@ protected:
                     else
                         tw.brightness = 255;
 
-                    if (tw.frameCounter >= RISE_FRAMES || tw.brightness == 255)
+                    if (tw.frameCounter >= tw.riseLimit || tw.brightness == 255)
                     {
                         tw.phase = PHASE_SATURATION_JOURNEY;
                         tw.frameCounter = 0;
@@ -202,7 +209,7 @@ protected:
                     else
                         tw.brightness = 0;
 
-                    if (tw.frameCounter >= FINAL_CRASH_FRAMES || tw.brightness == 0)
+                    if (tw.frameCounter >= tw.finalLimit || tw.brightness == 0)
                     {
                         tw.phase = PHASE_NONE; // Release slot, LED rejoins base layer
                     }
@@ -252,6 +259,9 @@ protected:
                             twinkles[ch][t].phase = PHASE_CRASH_DOWN;
                             twinkles[ch][t].frameCounter = 0;
                             twinkles[ch][t].brightness = baseBrightness[ch][ledIndex];
+                            twinkles[ch][t].crashLimit = CRASH_FRAMES + random(3) - 1;
+                            twinkles[ch][t].riseLimit  = RISE_FRAMES  + random(3) - 1;
+                            twinkles[ch][t].finalLimit = FINAL_CRASH_FRAMES + random(3) - 1;
                             spawned = true;
                             break;
                         }

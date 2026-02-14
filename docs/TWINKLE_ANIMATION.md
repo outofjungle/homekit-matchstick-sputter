@@ -18,15 +18,16 @@ Base Layer → Phase 1 → Phase 2 → Phase 3 → Phase 4 → Base Layer
 ```
 
 ### Phase 1: Crash Down (Rapid)
-The LED rapidly but smoothly fades from its current base layer brightness to **brightness = 0**.
+The LED rapidly fades from its current base layer brightness to **brightness = 0**.
 
-- Duration: ~5 frames (0.25s at 20fps)
+- Duration: `CRASH_FRAMES` = 2 frames (0.10s at 20fps)
+- Step size: `BRIGHTNESS_STEP` = 128 per frame (reaches 0 in 2 frames)
 - The LED visually "winks out"
 
 ### Phase 2: Rise Up (Rapid)
-The LED picks a **random saturation** and a **harmony color**, then rapidly increases brightness from 0 to 100%.
+The LED picks a **random saturation** and a **harmony color**, then rapidly increases brightness from 0 to 255.
 
-- Duration: ~5 frames (0.25s at 20fps)
+- Duration: `RISE_FRAMES` = 2 frames (0.10s at 20fps)
 - Saturation: Random value 0-255
 - Hue: Selected via `pickHarmonyColor()` (same system as Rain/Runner)
 - The LED "pops" back into view with a new color
@@ -34,46 +35,45 @@ The LED picks a **random saturation** and a **harmony color**, then rapidly incr
 ### Phase 3: Saturation Journey (Slow)
 At full brightness, the LED slowly shifts its saturation toward the **longest path endpoint**:
 
-| Initial Saturation | Target | Path Length | Example |
-|-------------------|--------|-------------|---------|
-| >= 50% (128-255)  | 0%     | sat steps   | 80% → 0 = 204 steps |
-| < 50% (0-127)     | 100%   | 255-sat steps | 49% → 100 = 130 steps |
+| Initial Saturation | Target | Direction |
+|-------------------|--------|-----------|
+| ≥ 128 (high)      | 0      | Toward white/desaturated |
+| < 128 (low)       | 255    | Toward vivid color |
 
 This creates visual interest:
 - High saturation LEDs fade toward white (desaturated)
 - Low saturation LEDs intensify toward vivid color
 
-- Duration: Variable, 2-5 seconds depending on starting saturation
-- Step size: ~2 units per frame
+- Duration: Variable, ~4–9 frames depending on starting saturation (SAT_STEP = 30/frame)
 - This is the longest, most visible phase
 
 ### Phase 4: Final Crash (Rapid)
 The LED rapidly fades back to **brightness = 0**, completing the twinkle cycle.
 
-- Duration: ~5 frames (0.25s at 20fps)
+- Duration: `FINAL_CRASH_FRAMES` = 2 frames (0.10s at 20fps)
 - After reaching brightness = 0, the LED rejoins the base layer
 
 ## Timing Summary
 
 | Phase | Duration | Speed |
 |-------|----------|-------|
-| Phase 1: Crash Down | 0.15s | Rapid |
-| Phase 2: Rise Up | 0.15s | Rapid |
-| Phase 3: Saturation Journey | ~0.65s | Quick |
-| Phase 4: Final Crash | 0.15s | Rapid |
-| **Total cycle** | **~1s** | |
+| Phase 1: Crash Down | 2 frames (~0.10s) | Rapid |
+| Phase 2: Rise Up | 2 frames (~0.10s) | Rapid |
+| Phase 3: Saturation Journey | ~4–9 frames (~0.2–0.45s) | Slow |
+| Phase 4: Final Crash | 2 frames (~0.10s) | Rapid |
+| **Total cycle** | **~10–13 frames (~0.5–0.65s)** | |
 
 ## Twinkle Density
 
-The number of simultaneously twinkling LEDs per channel is controlled by the HomeKit brightness slider:
+The number of simultaneously twinkling LEDs per channel is controlled by the HomeKit brightness slider. The density is inverted: lower brightness → more twinkles.
 
 | Brightness | Active Twinkles | Effect |
 |------------|-----------------|--------|
-| 0%         | 8 per channel   | Very sparkly |
-| 50%        | 5 per channel   | Moderate activity |
-| 100%       | 3 per channel   | Subtle, occasional |
+| ≤5%        | 200 per channel | Maximum density (every LED) |
+| 50%        | ~110 per channel | High density |
+| 100%       | 20 per channel  | Minimum density (10% of LEDs) |
 
-This follows the same inverted brightness pattern as Rain and Runner animations.
+Constants: `MIN_TWINKLES = 20` (at brightness=100), `MAX_TWINKLES = 200` (at brightness≤5). Density ramps up over ~10 seconds on startup to avoid synchronized initialization.
 
 ## Color Harmonies
 
@@ -116,7 +116,8 @@ When a twinkle completes Phase 4, the LED seamlessly transitions back to base la
 
 ## Implementation Notes
 
-- Twinkle state is tracked per-LED (not per-slot like Rain/Runner)
-- Spawn probability increases over time to maintain target density
-- Random LED selection avoids clustering
+- Twinkle state is tracked in slot arrays (`TwinkleSlot twinkles[4][MAX_TWINKLE_SLOTS]`), not per-LED
+- Up to `MAX_TWINKLE_SLOTS` = 200 slots per channel; each slot tracks one active twinkle
+- Spawn rate is capped at `SPAWNS_PER_FRAME` = 15 new twinkles per frame to avoid stuttering
+- A 10-second ramp (`RAMP_FRAMES`) prevents all twinkles from spawning simultaneously on startup
 - Base layer continues updating for all LEDs (including twinkling ones) to maintain coherence when rejoining

@@ -352,6 +352,7 @@ void setup() {
     // Initialize Serial for debugging
     Serial.begin(115200);
     delay(1000);
+    randomSeed(esp_random());
 
     Serial.println("\n\n========================================");
     Serial.println("homekit-matchstick-sputter - Phase 2");

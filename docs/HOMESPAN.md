@@ -7,12 +7,12 @@ This project uses [HomeSpan](https://github.com/HomeSpan/HomeSpan) to create a n
 ## Architecture
 
 ```
-HomeSpan Bridge: "Sputter Lights"
+HomeSpan Bridge: "Matchstick 0x02"
 ├── Bridge Accessory (Device Info)
-├── Channel 1 (GPIO 26, 200 LEDs)
-├── Channel 2 (GPIO 18, 200 LEDs)
-├── Channel 3 (GPIO 25, 200 LEDs)
-└── Channel 4 (GPIO 19, 200 LEDs)
+├── Sputter One (GPIO 26, 200 LEDs)
+├── Sputter Two (GPIO 18, 200 LEDs)
+├── Sputter Three (GPIO 19, 200 LEDs)
+└── Sputter Four (GPIO 25, 200 LEDs)
 ```
 
 Each channel supports:
@@ -35,6 +35,14 @@ make monitor
 ### 2. WiFi Configuration
 
 On first boot, the device has no WiFi credentials configured.
+
+**Button Method (GPIO39, recommended for deployed devices):**
+
+1. Hold the reset button (GPIO39) for **3 seconds** — LEDs turn solid purple
+2. Release the button — device enters AP mode
+3. Connect to WiFi network **"Matchstick-Setup"** (open network, no password)
+4. A captive portal opens automatically — enter your WiFi SSID and password
+5. Device saves credentials and reconnects
 
 **Serial CLI Method:**
 
@@ -76,16 +84,16 @@ Once WiFi is connected:
    - **Scan QR Code** (displayed in serial output)
    - **Enter Setup Code manually** (displayed in serial output)
 4. If prompted about "Uncertified Accessory", tap **Add Anyway**
-5. Device appears as **"Sputter Lights"**
+5. Device appears as **"Matchstick 0x02"**
 6. Assign to a room and tap **Done**
 
 ### 4. Verify Channels
 
 After pairing, you should see 4 light accessories:
-- Channel 1
-- Channel 2
-- Channel 3
-- Channel 4
+- Sputter One
+- Sputter Two
+- Sputter Three
+- Sputter Four
 
 Test each channel:
 1. Toggle power on/off
@@ -164,14 +172,17 @@ Press these keys in the serial monitor:
 
 Edit `src/config.h`:
 ```cpp
-constexpr const char* DEVICE_NAME = "Your Custom Name";
+constexpr const char* DEVICE_NAME = "Matchstick 0x02";  // current value
 ```
 
 ### Changing Channel Names
 
-Edit `src/main.cpp` (lines 61, 68, 75, 82):
+Edit `src/main.cpp` (search for `Sputter One`, `Sputter Two`, etc.):
 ```cpp
-new Characteristic::Name("Your Channel Name");
+new DEV_Identify("Sputter One");   // Channel 1
+new DEV_Identify("Sputter Two");   // Channel 2
+new DEV_Identify("Sputter Three"); // Channel 3
+new DEV_Identify("Sputter Four");  // Channel 4
 ```
 
 ### Adjusting Brightness Limit

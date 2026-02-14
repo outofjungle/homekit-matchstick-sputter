@@ -1,160 +1,111 @@
 # Inverted Base Animation
 
-The inverted base is a dark-field variant of the normal base layer. Instead of a bright, breathing strip, it produces a mostly-black shimmer where LEDs barely glow and are continuously pulled back toward zero.
+The inverted base is a dark-field variant of the animation system. Instead of a bright, breathing strip, it produces a mostly-black field where 20% of LEDs glow at any moment, each fading in and out smoothly.
 
 ## Overview
 
-**Purpose:** Create an atmospheric dark ambiance — nearly-off strip with subtle, dim color glimmers.
+**Purpose:** Create an atmospheric dark ambiance — nearly-off strip with subtle, twinkling color glimmers.
 
-**Implementation:** `InvertedBaseAnimation` inherits from `BaseOnlyAnimation` and overrides only the brightness walk. Hue and saturation evolve identically to the normal base layer, so the color character is preserved at very low intensity.
+**Implementation:** `InvertedBaseAnimation` (and all inverted animation variants) use `SparkleBaseLayer` as their base rendering layer (`src/animation/sparkle_base_layer.h`). This replaces the Markov-chain random walk used by the normal base layer.
 
-**Visual character:** Most LEDs sit under ~5% brightness at any given moment. Occasional LEDs drift up toward ~20% before being pulled back down by the bias. No bright flares occur.
+**Visual character:** 40 of 200 LEDs are active at any moment (~20%). Each active LED fades in and out following a smooth sine hump, with colors pinned at birth. The rest of the strip is black.
 
-## Three Independent Random Walks
+## Algorithm
 
-Each LED maintains three state variables evolved via Markov chains, same as the normal base layer:
+### Active LED Pool
 
-### 1. Hue Offset Walk
+At any time, exactly `DARK_MAX_ACTIVE_LEDS` (40) LEDs are active across 200 total. The other 160 LEDs are black.
 
-**Range:** `±ANGLE_WIDTH/2` degrees around the channel's HomeKit hue
-**Momentum:** 60% chance to continue in the same direction
-**Step Size:** ±1 degree per frame
+On initialization, 40 unique LEDs are randomly selected and activated with staggered phases to avoid synchronized startup.
 
-Identical to the normal base layer — color variation remains within the channel's hue neighborhood.
+### Per-LED Lifecycle
 
-### 2. Brightness Walk (Power-Law-Biased, toward dark)
-
-**Range:** 0 to `DARK_MAX_BRIGHTNESS` (51, ~20% of 255)
-**Step Size:** ±2 per frame
-**Bias:** Strongly skewed toward 0 — higher brightness means stronger downward pull
-
-**Key difference from normal base:** The normal base layer biases brightness *upward* toward max. Here the bias is *reversed*, continuously pulling LEDs back toward black.
-
-### 3. Saturation Walk (Power-Law-Biased)
-
-**Range:** `MIN_SATURATION` to 255
-**Step Size:** ±2 per frame
-**Bias:** Identical to normal base layer — most LEDs maintain high saturation
-
-Saturation walk is unchanged. Even at near-zero brightness the saturation values evolve normally, ready if brightness rises.
-
-## Power-Law Dark Brightness Distribution
-
-### Initial State
-
-On `begin()`, brightness values are sampled from a power-law distribution concentrated near 0:
+Each active LED goes through a single sin8 brightness hump from birth to death:
 
 ```
-brightness = DARK_MAX_BRIGHTNESS × u^α    where u ~ Uniform(0, 1), α = 3
+phase: 0 ──────────────────────────> 255 → wrap (death)
+brightness: 0 → peaks at ~255 → back to 0
 ```
 
-With α=3, the CDF gives:
-- **~63%** of LEDs start below brightness **13** (~5% of 255)
-- **~87%** start below brightness **26** (~10% of 255)
-- **~100%** start at or below **51** (~20% of 255)
+**Phase progression:** Each frame, `lifePhase += lifeSpeed` where `lifeSpeed` is random in `[LIFE_SPEED_MIN, LIFE_SPEED_MAX]` = `[2, 6]`. This gives:
 
-This avoids the uniform-distribution startup appearance where LEDs are scattered evenly across the dark range.
+| lifeSpeed | Frames per hump | Duration at 20fps |
+|-----------|-----------------|-------------------|
+| 2         | 128 frames      | ~6.4 s            |
+| 6         | ~43 frames      | ~2.1 s            |
 
-### Steady-State Bias
+**Death on wrap:** When `lifePhase` wraps past 255 (uint8 overflow), the LED dies. A random inactive LED immediately takes its place, keeping the active count fixed at 40.
 
-The `DARK_BRIGHT_BIAS` table encodes a downward pull proportional to `sqrt(b / DARK_MAX_BRIGHTNESS)`:
-
-```
-bias[b] = round(30 × sqrt(b / 51))
-```
-
-| Brightness | Bias | Downward Pull |
-|-----------|------|---------------|
-| 0         | 0    | No pull (at floor) |
-| 13 (~5%)  | 13   | Moderate |
-| 26 (~10%) | 18   | Strong |
-| 51 (~20%) | 30   | Maximum |
-
-The sqrt shape means bias increases rapidly in the lower range (0–20) and then grows more slowly, giving a gradual squeeze rather than a hard ceiling.
-
-### Bias Table
+### Brightness Formula
 
 ```cpp
-static constexpr int8_t DARK_BRIGHT_BIAS[52] = {
-     0,  4,  6,  7,  8,  9, 10, 11, 12, 13, 13, 14, 15, 15, 16, 16,
-    17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 21, 22, 22, 23, 23, 23,
-    24, 24, 24, 25, 25, 26, 26, 26, 27, 27, 27, 28, 28, 28, 28, 29,
-    29, 29, 30, 30
-};
+uint8_t raw    = sin8(lifePhase >> 1);       // maps phase 0-255 → sin8 index 0-127
+                                              // sin8 gives 128..255 on positive lobe
+uint8_t factor = raw - 128;                  // 0..127
+uint8_t brightness = (factor * 255) / 127;   // 0..255
 ```
 
-### Transition Probabilities
+This traces the positive lobe of sin8, producing a smooth 0 → 255 → 0 hump.
 
-```
-Current State = 0 (stationary):
-  (40 + bias)% → -1 (decrease toward dark)   [bias 0–30 → 40–70%]
-  30%           →  0 (stay)
-  remainder     → +1 (increase)
+### Birth Colors (Fixed at Birth)
 
-Current State = -1 (decreasing, toward dark):
-  (60 + bias/2)% → -1 (continue)
-  25%             →  0 (stop)
-  remainder       → +1 (reverse)
+When a LED is born, its hue and saturation are chosen randomly and **pinned for its entire lifetime**:
 
-Current State = +1 (increasing, toward bright):
-  (60 - bias/2)% → +1 (continue)
-  25%             →  0 (stop)
-  remainder       → -1 (reverse)
+**Hue:** Random within ±5° of the channel's HomeKit hue:
+```cpp
+int hue360 = ((chHue + random(-5, 6)) + 360) % 360;
+sparkleHue8[ch][i] = map(hue360, 0, 360, 0, 255);
 ```
 
-The bias reduces the probability of continuing upward and increases the probability of turning back. At maximum brightness (bias=30), an increasing LED has only a 45% chance to continue rising, versus 60% at floor.
+**Saturation:** Power-law biased toward high saturation (α=4), clamped to `[SPARKLE_MIN_SAT, 255]` = `[128, 255]`:
+```cpp
+float u = random(1000) / 1000.0f;
+sat = constrain((int)((1.0f - powf(u, 4.0f)) * 255), 128, 255);
+```
+
+With α=4, virtually all LEDs get saturation ≥ 128, so colors are vivid and never white.
+
+## Constants
+
+```cpp
+static constexpr uint16_t SPARKLE_MAX_LEDS     = 200;   // Total LED pool size
+static constexpr uint16_t DARK_MAX_ACTIVE_LEDS = 40;    // 20% of pool active
+static constexpr uint8_t  LIFE_SPEED_MIN       = 2;     // ~6.4s hump at 20fps
+static constexpr uint8_t  LIFE_SPEED_MAX       = 6;     // ~2.1s hump at 20fps
+static constexpr uint8_t  SPARKLE_MIN_SAT      = 128;   // Minimum birth saturation
+```
 
 ## Comparison: Normal Base vs Inverted Base
 
-| Property              | Normal Base                        | Inverted Base                     |
-|----------------------|------------------------------------|-----------------------------------|
-| Brightness range     | 40–220 (16%–86%)                   | 0–51 (0%–20%)                     |
-| Brightness bias      | Upward (toward 220)                | Downward (toward 0)               |
-| Bias mechanism       | `SAT_BIAS_TABLE` (pushes up)       | `DARK_BRIGHT_BIAS` (pushes down)  |
-| Knock-to-zero effect | 10% chance at max brightness       | None needed                       |
-| Initial distribution | Uniform in [BASE_BRIGHTNESS, MAX]  | Power-law α=3, concentrated at 0  |
-| Visual effect        | Bright, breathing, pulsing strip   | Dark shimmer, near-black          |
-| Hue walk             | Identical                          | Identical                         |
-| Saturation walk      | Identical                          | Identical                         |
+| Property              | Normal Base (MarkovBaseLayer)          | Inverted Base (SparkleBaseLayer)          |
+|----------------------|----------------------------------------|-------------------------------------------|
+| Background           | All LEDs lit, bright                   | All LEDs black by default                 |
+| Active LEDs          | 100% (all 200)                         | 20% (40 of 200)                           |
+| Brightness mechanism | Markov chain random walk               | sin8 lifecycle hump                        |
+| Brightness range     | 40–220 (16%–86%)                       | 0–255 (full hump per lifecycle)            |
+| Hue per LED          | Markov walk within ±5° of channel hue  | Fixed at birth, ±5° of channel hue        |
+| Saturation per LED   | Power-law Markov walk                  | Fixed at birth, power-law α=4, min=128    |
+| LED lifetime         | Continuous, no death                   | ~2–6s per hump, then replaced             |
+| Knock-to-zero effect | 5% chance at max brightness            | None (hump naturally returns to 0)        |
+| Visual effect        | Bright, breathing, pulsing strip       | Dark field with slow twinkling glimmers   |
 
-## Implementation Details
+## Inverted Animation Variants
 
-### State Arrays
+All inverted animation variants use `SparkleBaseLayer` as their base layer (via `InvertedBaseAnimation`, `InvertedRunnerBase`, `InvertedRainBase`, `InvertedTwinkleBase`). The SparkleBaseLayer renders the dark background, while the overlay effect (runner/rain/twinkle) renders on top using harmony colors.
 
-Shared with `BaseOnlyAnimation` (inherited from `MarkovBaseLayer`):
+This means all 16 inverted modes share the same dark sparkle foundation:
+- `ANIM_INVERTED_BASE` — sparkle background only
+- `ANIM_INVERTED_*_RUNNER` — runner overlay on sparkle background (5 harmonies)
+- `ANIM_INVERTED_*_RAIN` — rain overlay on sparkle background (5 harmonies)
+- `ANIM_INVERTED_*_TWINKLE` — twinkle overlay on sparkle background (5 harmonies)
 
-```cpp
-int8_t hueOffset[4][MAX_LEDS];       // -ANGLE_WIDTH/2 to +ANGLE_WIDTH/2
-int8_t hueDir[4][MAX_LEDS];          // -1, 0, +1
-uint8_t baseBrightness[4][MAX_LEDS]; // 0 to DARK_MAX_BRIGHTNESS
-int8_t brightDir[4][MAX_LEDS];       // -1, 0, +1
-uint8_t baseSaturation[4][MAX_LEDS]; // MIN_SATURATION to 255
-int8_t satDir[4][MAX_LEDS];          // -1, 0, +1
-```
-
-### Rendering
-
-Direct HSV render, no overlay blending:
+## State Arrays
 
 ```cpp
-CHSV(hue8, baseSaturation[ch][i], baseBrightness[ch][i])
+uint8_t sparkleHue8[4][SPARKLE_MAX_LEDS];     // Fixed birth hue (FastLED 0-255)
+uint8_t sparkleBirthSat[4][SPARKLE_MAX_LEDS]; // Fixed birth saturation (128-255)
+uint8_t lifePhase[4][SPARKLE_MAX_LEDS];       // Position in sin8 cycle (0-255)
+uint8_t lifeSpeed[4][SPARKLE_MAX_LEDS];       // Phase increment per frame (0 = inactive)
 ```
 
-The low brightness values naturally produce the dim appearance — no brightness scaling is applied at render time.
-
-## Tunable Parameters
-
-```cpp
-// Brightness ceiling
-static constexpr uint8_t DARK_MAX_BRIGHTNESS = 51;  // ~20% of 255
-
-// Power-law exponent for initial distribution (higher = more concentrated at 0)
-// α=3 → ~63% of LEDs start below 5% brightness
-float alpha = 3.0f;  // Used in: DARK_MAX_BRIGHTNESS * powf(u, alpha)
-
-// Bias table shape: bias[b] = round(30 × sqrt(b / DARK_MAX_BRIGHTNESS))
-// Increase the 30 multiplier for stronger pull toward 0
-// Change sqrt to a higher power for faster bias growth
-```
-
-To shift more LEDs darker, increase α in the initial distribution or the `30` multiplier in the bias table formula. To allow occasional brighter excursions, raise `DARK_MAX_BRIGHTNESS`.
+`lifeSpeed == 0` indicates an inactive (black) LED.

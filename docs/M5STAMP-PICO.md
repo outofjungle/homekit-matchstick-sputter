@@ -3,12 +3,13 @@
 ## Board Overview
 
 **Model**: M5Stack Stamp Pico
-**MCU**: ESP32-PICO-D4 (WiFi only, no Thread/BLE mesh)
+**MCU**: ESP32-PICO-D4 (WiFi + BLE 4.2, no Thread/BLE mesh)
 **Form Factor**: Ultra-compact stamp module with castellated edges
 
 ## Key Specifications
 
-- **WiFi**: 2.4GHz 802.11 b/g/n (no Thread/Bluetooth mesh)
+- **WiFi**: 2.4GHz 802.11 b/g/n
+- **Bluetooth**: BLE 4.2 (used for HomeKit pairing)
 - **Flash**: 4MB
 - **PSRAM**: None in base PICO-D4
 - **Operating Voltage**: 3.3V
@@ -24,14 +25,14 @@
 | PIN_STATUS_LED | GPIO22 | Single-color | Single-color status LEDs |
 | Button | GPIO39 | Input | User button (input only pin) |
 
-### External LED Strip Channels (Future Use)
+### External LED Strip Channels
 
 | Pin Name | GPIO | Purpose | Max LEDs |
 |----------|------|---------|----------|
 | PIN_LED_CH1 | GPIO26 | WS2811 Strip | 200 |
 | PIN_LED_CH2 | GPIO18 | WS2811 Strip | 200 |
-| PIN_LED_CH3 | GPIO25 | WS2811 Strip | 200 |
-| PIN_LED_CH4 | GPIO19 | WS2811 Strip | 200 |
+| PIN_LED_CH3 | GPIO19 | WS2811 Strip | 200 |
+| PIN_LED_CH4 | GPIO25 | WS2811 Strip | 200 |
 
 ## PIN_LED_CH0 - Status RGB LED (GPIO27)
 
@@ -52,25 +53,25 @@ Use ESP-IDF's `led_strip` component with RMT backend:
 
 ### Status Color Mapping
 
-| Color | RGB | Matter State |
-|-------|-----|--------------|
-| Red | (255, 0, 0) | Not commissioned / Error |
+| Color | RGB | HomeKit State |
+|-------|-----|---------------|
+| Red | (255, 0, 0) | Not paired / Error |
 | Blue | (0, 0, 255) | BLE pairing mode |
 | Green | (0, 255, 0) | Connected / Operating normally |
 | Yellow | (255, 255, 0) | Updating / Busy |
 | Off | (0, 0, 0) | Deep sleep / Idle |
 
-## Matter Compatibility
+## HomeKit/HomeSpan Compatibility
 
 ### RMT Usage
 - **Status LED**: Uses RMT channel for SK6812 control (minimal overhead)
-- **Matter Stack**: WiFi-only configuration, no Thread radio conflicts
+- **HomeSpan**: WiFi-only configuration, no Thread radio conflicts
 - **No Conflicts**: ESP32-PICO-D4 WiFi implementation doesn't conflict with RMT peripheral
 
 ### Memory Considerations
 - Status LED: Minimal memory (1 LED = 3 bytes RGB buffer)
-- Matter stack requires ~200KB RAM
-- 4-channel LED strips (future): ~2.4KB RAM (4 × 200 LEDs × 3 bytes)
+- HomeSpan HAP stack requires ~200KB RAM
+- 4-channel LED strips: ~2.4KB RAM (4 × 200 LEDs × 3 bytes)
 
 ## Power Requirements
 

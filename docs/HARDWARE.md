@@ -6,14 +6,14 @@
 - **MCU:** ESP32 PICO32
 - **Flash:** 4MB
 - **WiFi:** 2.4 GHz 802.11 b/g/n
-- **Bluetooth:** BLE 4.2 (for Matter commissioning)
+- **Bluetooth:** BLE 4.2
 
 ## LED Strip Configuration
 
 ### Onboard Status LEDs
 
-The M5Stack Stamp Pico includes built-in status LEDs for Matter state indication:
-- **SK6812 RGB LED (GPIO 27):** Primary status indicator showing Matter connection state
+The M5Stack Stamp Pico includes built-in status LEDs for HomeKit status indication:
+- **SK6812 RGB LED (GPIO 27):** Primary status indicator showing HomeKit connection state
 - **Single-color LED (GPIO 22):** Secondary status indicator
 
 These are separate from the external LED strip channels and are used for debugging and status display.
@@ -28,11 +28,11 @@ These are separate from the external LED strip channels and are used for debuggi
 
 ### GPIO Pin Mapping
 
-#### Status LEDs (Matter State Indication)
+#### Status LEDs (HomeKit Status)
 
 | Pin Name | GPIO Pin | Description |
 |----------|----------|-------------|
-| PIN_LED_CH0 | GPIO 27 | SK6812 RGB (1 pixel) - Channel 0 status indicator |
+| PIN_STATUS_SK6812 | GPIO 27 | SK6812 RGB (1 pixel) - HomeKit status indicator |
 | PIN_STATUS_LED | GPIO 22 | Single-color LED for status indication |
 
 #### External LED Strip Channels
@@ -41,8 +41,8 @@ These are separate from the external LED strip channels and are used for debuggi
 |----------|----------|-------------|
 | PIN_LED_CH1 | GPIO 26 | LED Strip Channel 1 Data (200 LEDs) |
 | PIN_LED_CH2 | GPIO 18 | LED Strip Channel 2 Data (200 LEDs) |
-| PIN_LED_CH3 | GPIO 25 | LED Strip Channel 3 Data (200 LEDs) |
-| PIN_LED_CH4 | GPIO 19 | LED Strip Channel 4 Data (200 LEDs) |
+| PIN_LED_CH3 | GPIO 19 | LED Strip Channel 3 Data (200 LEDs) |
+| PIN_LED_CH4 | GPIO 25 | LED Strip Channel 4 Data (200 LEDs) |
 
 ## Power Considerations
 
@@ -88,8 +88,8 @@ M5Stack Stamp Pico (ESP32 PICO32)
     GPIO22 -----------> Single-color Status LED
     GPIO26 -----------> LED Strip 1 Data
     GPIO18 -----------> LED Strip 2 Data
-    GPIO25 -----------> LED Strip 3 Data
-    GPIO19 -----------> LED Strip 4 Data
+    GPIO19 -----------> LED Strip 3 Data
+    GPIO25 -----------> LED Strip 4 Data
     GND    -----------> LED Strip Common GND
 ```
 
@@ -115,7 +115,7 @@ M5Stack Stamp Pico (ESP32 PICO32)
 
 1. Flash firmware to ESP32
 2. Monitor serial output for QR code
-3. Commission device via Apple Home or chip-tool
+3. Pair device via Apple Home app (scan QR code)
 4. Test each channel independently
 5. Verify proper on/off control
 

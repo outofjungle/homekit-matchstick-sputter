@@ -5,7 +5,7 @@ Creates src/pairing_config.h with a unique setup code, QR ID, and
 auto-incrementing PAIRING_CONFIG_ID. Run this once per device or
 whenever you want to rotate pairing credentials.
 
-Also generates docs/pairing_qr.png if qrcode and Pillow are installed:
+Also generates docs/img/pairing_qr.png if qrcode and Pillow are installed:
   pip install qrcode pillow
 """
 
@@ -14,7 +14,7 @@ import re
 import os
 
 HEADER_PATH = os.path.join(os.path.dirname(__file__), "..", "src", "pairing_config.h")
-QR_IMAGE_PATH = os.path.join(os.path.dirname(__file__), "..", "docs", "pairing_qr.png")
+QR_IMAGE_PATH = os.path.join(os.path.dirname(__file__), "..", "docs", "img", "pairing_qr.png")
 
 INVALID_CODES = {str(d) * 8 for d in range(10)}  # 00000000 .. 99999999
 

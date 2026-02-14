@@ -14,7 +14,7 @@ Each LED maintains three independent state variables, each evolving via its own 
 
 ### 1. Hue Offset Walk
 
-**Range:** `±ANGLE_WIDTH/2` degrees around the channel's HomeKit hue
+**Range:** `±ANGLE_WIDTH/2` degrees around the channel's HomeKit hue (`ANGLE_WIDTH=10`, so ±5°)
 **Momentum:** 60% chance to continue in the same direction
 **Step Size:** ±1 degree per frame
 
@@ -23,10 +23,9 @@ Each LED maintains three independent state variables, each evolving via its own 
 ### 2. Brightness Walk (Biased)
 
 **Range:** `BASE_BRIGHTNESS` (40) to `MAX_BRIGHTNESS` (220)
-**Momentum:** 60% chance to continue in the same direction
 **Step Size:** ±2 per frame
-**Bias:** Skewed toward higher brightness values
-**Special Effect:** 10% chance of "knock to zero" when hitting max brightness
+**Bias:** Skewed toward higher brightness values (brightness-biased Markov chain)
+**Special Effect:** 5% chance of "knock to zero" when hitting max brightness
 
 **Purpose:** Creates a breathing/pulsing effect with most LEDs staying bright.
 
@@ -102,21 +101,25 @@ Each random walk uses a simple 3-state Markov chain:
 
 **States:** -1 (decreasing), 0 (stationary), +1 (increasing)
 
-**Transition Probabilities (with momentum):**
+**Transition Probabilities (brightness-biased):**
 ```
-Current State = +1 (increasing):
-  60% → +1 (continue increasing)
-  30% →  0 (stop)
-  10% → -1 (reverse)
-
 Current State = 0 (stationary):
-  Use bias to determine next move
+  60% → +1 (increase — biased upward)
+  20% →  0 (stay)
+  20% → -1 (decrease)
 
-Current State = -1 (decreasing):
-  60% → -1 (continue decreasing)
+Current State = +1 (moving up):
+  70% → +1 (continue up — strong momentum)
+  15% →  0 (stop)
+  15% → -1 (reverse)
+
+Current State = -1 (moving down):
+  40% → -1 (continue down — weaker momentum)
   30% →  0 (stop)
-  10% → +1 (reverse)
+  30% → +1 (reverse — more likely to turn around)
 ```
+
+The asymmetric probabilities create a net upward bias, keeping most LEDs near maximum brightness. The 5% knock-to-zero effect at max brightness prevents all LEDs from staying pinned at maximum.
 
 **Boundary Handling:**
 - When hitting min/max values, flip the momentum direction
@@ -148,12 +151,12 @@ CRGB finalColor = blend(baseColor, overlayColor, blendFactor);
 
 ```cpp
 // Hue walk
-static constexpr int ANGLE_WIDTH = 30;  // ±15° around channel hue
+static constexpr int ANGLE_WIDTH = 10;  // ±5° around channel hue
 
 // Brightness walk
 static constexpr uint8_t BASE_BRIGHTNESS = 40;
 static constexpr uint8_t MAX_BRIGHTNESS = 220;
-static constexpr uint8_t BRIGHTNESS_KNOCK_ZERO_PCT = 10;
+static constexpr uint8_t BRIGHTNESS_KNOCK_ZERO_PCT = 5;
 
 // Saturation walk (Power law distribution)
 static constexpr float POWER_LAW_ALPHA = 4.0f;  // Shape parameter (higher = more skewed)

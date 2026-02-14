@@ -46,9 +46,14 @@ struct DEV_LedChannel : Service::LightBulb {
         numLeds = count;
         channelNumber = channelNum;
 
-        // Load validated state from NVS (guaranteed valid by applyChannelDefaults)
+        // Load validated state from NVS (normally guaranteed by applyChannelDefaults).
+        // Apply compile-time defaults defensively in case NVS is unavailable.
         ChannelStorage::ChannelState savedState;
-        storage.load(savedState);
+        savedState.power = true;
+        savedState.hue = getDefaultHue(channelNum);
+        savedState.saturation = DEFAULT_SATURATION;
+        savedState.brightness = DEFAULT_BRIGHTNESS;
+        storage.load(savedState);  // overwrites defaults if NVS data exists
 
         // Create HomeKit characteristics with saved values
         power = new Characteristic::On(savedState.power);

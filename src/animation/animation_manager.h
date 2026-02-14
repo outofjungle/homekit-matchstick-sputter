@@ -265,11 +265,11 @@ private:
     }
 
     // Storage for saved LED state (when entering animation mode)
-    // RAM: 4ch × 200 × 3 bytes/CRGB = ~2,400 bytes
-    CRGB savedCh1[200];
-    CRGB savedCh2[200];
-    CRGB savedCh3[200];
-    CRGB savedCh4[200];
+    // RAM: 4ch × NUM_LEDS_PER_CHANNEL × 3 bytes/CRGB = ~2,400 bytes
+    CRGB savedCh1[NUM_LEDS_PER_CHANNEL];
+    CRGB savedCh2[NUM_LEDS_PER_CHANNEL];
+    CRGB savedCh3[NUM_LEDS_PER_CHANNEL];
+    CRGB savedCh4[NUM_LEDS_PER_CHANNEL];
 
     void startCurrentAnimation() {
         // Tell all channel services to yield to animation

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matchstick 0x02 Pairing QR code Decoder</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #c8c8c8;
+      color: #222222;
+      font-family: system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 0.4rem;
+      color: #111111;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: #555555;
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    .led-row {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 0;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .led-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .led-cell img {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 0;
+      border: none;
+      background: #ffffff;
+      display: block;
+    }
+
+    .led-cell:first-child img {
+      border-radius: 8px 0 0 8px;
+    }
+
+    .led-cell:last-child img {
+      border-radius: 0 8px 8px 0;
+    }
+
+    .led-cell .led-label {
+      font-size: 0.75rem;
+      color: #333333;
+    }
+
+    .led-cell .bit-label {
+      font-size: 0.65rem;
+      color: #777777;
+      height: 0.85rem;
+    }
+
+    .led-cell input {
+      width: 40px;
+      height: 40px;
+      text-align: center;
+      font-size: 1.2rem;
+      font-family: monospace;
+      font-weight: bold;
+      background: #ffffff;
+      color: #1a1a1a;
+      border: 2px solid #999999;
+      border-radius: 4px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .led-cell input:focus {
+      border-color: #333333;
+    }
+
+    .led-cell input.valid-0 {
+      border-color: #3355bb;
+      color: #3355bb;
+    }
+
+    .led-cell input.valid-1 {
+      border-color: #bb3333;
+      color: #bb3333;
+    }
+
+    .legend {
+      font-size: 0.8rem;
+      color: #333333;
+      margin-bottom: 1.5rem;
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .legend span {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .dot-red {
+      background: #cc4444;
+    }
+
+    .dot-blue {
+      background: #4466cc;
+    }
+
+    .result {
+      font-family: monospace;
+      font-size: 1.4rem;
+      color: #222222;
+      min-height: 2rem;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    .result .hex-value {
+      color: #000000;
+      font-weight: bold;
+    }
+
+    .release-link {
+      min-height: 1.8rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .release-link img {
+      max-width: 280px;
+      width: 100%;
+      border: 4px solid #ffffff;
+      border-radius: 4px;
+    }
+
+    .release-link .qr-error {
+      display: inline-block;
+      background: #f4b8b8;
+      color: #6b1a1a;
+      font-size: 1.4rem;
+      font-family: monospace;
+      font-weight: bold;
+      padding: 0.6rem 1.2rem;
+      border-radius: 6px;
+    }
+
+    button {
+      background: #555555;
+      color: #ffffff;
+      border: 1px solid #aaaaaa;
+      border-radius: 4px;
+      padding: 0.5rem 1.2rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    button:hover {
+      background: #333333;
+      color: #ffffff;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Matchstick 0x02 Pairing QR code Decoder</h1>
+  <p class="subtitle">Read the 8 LEDs left-to-right during factory reset, then enter each bit below.</p>
+
+  <div class="legend">
+    <span><span class="dot dot-red"></span> Red = 1</span>
+    <span><span class="dot dot-blue"></span> Blue = 0</span>
+  </div>
+
+  <div class="led-row" id="ledRow"></div>
+
+  <div class="result" id="result"></div>
+  <div class="release-link" id="releaseLink"></div>
+  <button onclick="resetAll()">Clear / Reset</button>
+
+  <script>
+    const IMGS = { '': 'img/white.png', '0': 'img/blue.png', '1': 'img/red.png' };
+    const REPO = 'https://github.com/outofjungle/homekit-matchstick-sputter';
+
+    const inputs = [];
+    const images = [];
+    const row = document.getElementById('ledRow');
+
+    // LED 8 is MSB (leftmost), LED 1 is LSB (rightmost)
+    // Display order: LED 8, 7, 6, 5, 4, 3, 2, 1
+    for (let pos = 0; pos < 8; pos++) {
+      const ledNum = 8 - pos; // LED 8 → pos 0 (MSB), LED 1 → pos 7 (LSB)
+
+      const cell = document.createElement('div');
+      cell.className = 'led-cell';
+
+      const img = document.createElement('img');
+      img.src = IMGS[''];
+      img.alt = `LED ${ledNum}`;
+      images.push(img);
+
+      const label = document.createElement('div');
+      label.className = 'led-label';
+      label.textContent = `LED ${ledNum}`;
+
+      const bitLabel = document.createElement('div');
+      bitLabel.className = 'bit-label';
+      if (pos === 0) bitLabel.textContent = 'MSB';
+      else if (pos === 7) bitLabel.textContent = 'LSB';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.maxLength = 1;
+      input.inputMode = 'numeric';
+      input.setAttribute('aria-label', `LED ${ledNum}`);
+      inputs.push(input);
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === '0' || e.key === '1') return;
+        if (e.key === 'Backspace') {
+          e.preventDefault();
+          input.value = '';
+          input.className = '';
+          images[pos].src = IMGS[''];
+          update();
+          if (pos > 0) inputs[pos - 1].focus();
+          return;
+        }
+        if (['Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+        e.preventDefault();
+      });
+
+      input.addEventListener('input', () => {
+        const val = input.value;
+        if (val !== '0' && val !== '1') {
+          input.value = '';
+          input.className = '';
+          images[pos].src = IMGS[''];
+        } else {
+          input.className = `valid-${val}`;
+          images[pos].src = IMGS[val];
+          // auto-advance focus
+          if (pos < 7) inputs[pos + 1].focus();
+        }
+        update();
+      });
+
+      cell.appendChild(img);
+      cell.appendChild(label);
+      cell.appendChild(bitLabel);
+      cell.appendChild(input);
+      row.appendChild(cell);
+    }
+
+    function update() {
+      const vals = inputs.map(inp => inp.value);
+      const allValid = vals.every(v => v === '0' || v === '1');
+
+      const resultEl = document.getElementById('result');
+      const linkEl = document.getElementById('releaseLink');
+
+      if (!allValid) {
+        resultEl.innerHTML = '';
+        linkEl.innerHTML = '';
+        return;
+      }
+
+      // inputs[0] = LED 8 = MSB (bit 7), inputs[7] = LED 1 = LSB (bit 0)
+      const decimal = vals.reduce((acc, bit) => (acc << 1) | parseInt(bit, 10), 0);
+      const hex = decimal.toString(16).toUpperCase().padStart(2, '0');
+      const tag = `release-0x${hex}`;
+
+      resultEl.innerHTML = `Firmware version: <span class="hex-value">0x${hex}</span>`;
+
+      const rawUrl = `https://raw.githubusercontent.com/outofjungle/homekit-matchstick-sputter/refs/tags/${tag}/docs/img/pairing_qr.png`;
+      linkEl.innerHTML = '';
+      const qrImg = document.createElement('img');
+      qrImg.alt = `QR code for ${tag}`;
+      qrImg.src = rawUrl;
+      qrImg.onerror = () => {
+        linkEl.innerHTML = `<span class="qr-error">Invalid release version ${tag} — QR code not found</span>`;
+      };
+      linkEl.appendChild(qrImg);
+    }
+
+    function resetAll() {
+      inputs.forEach((inp, i) => {
+        inp.value = '';
+        inp.className = '';
+        images[i].src = IMGS[''];
+      });
+      document.getElementById('result').innerHTML = '';
+      document.getElementById('releaseLink').innerHTML = '';
+      inputs[0].focus();
+    }
+
+    inputs[0].focus();
+  </script>
+</body>
+
+</html>

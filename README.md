@@ -161,6 +161,9 @@ During the factory reset warning animation, the first 8 LEDs display `PAIRING_CO
 - **Blue LED** = bit 0
 - LED 1 = MSB (bit 7), LED 8 = LSB (bit 0)
 
+**[Use the interactive decoder →](https://outofjungle.github.io/homekit-matchstick-sputter/firmware-decoder.html)**
+_(or open `docs/firmware-decoder.html` locally)_
+
 ### Finding the QR Code for a Specific Release
 
 Each release tag tracks the exact pairing QR code used at that build. To view the QR code for a specific release, navigate to the tag on GitHub:

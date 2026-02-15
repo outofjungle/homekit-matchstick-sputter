@@ -171,13 +171,11 @@ These modes use a bright, undulating base layer where all 200 LEDs glow continuo
 
 ---
 
-### Identifying Your Firmware Version
+### Identifying Your Release
 
-Each verified firmware build has a `PAIRING_CONFIG_ID` and a corresponding git tag.
+Each verified firmware build has a `PAIRING_CONFIG_ID` and a corresponding git tag. Use the decoder app to read your device's current pairing config ID from the LEDs.
 
-**Current release:** `PAIRING_CONFIG_ID = 8` → git tag `release-0x08`
-
-#### Reading the Version from LEDs
+#### Reading the Pairing Config ID from LEDs
 
 During the factory reset warning animation, the first 8 LEDs display `PAIRING_CONFIG_ID` in binary:
 - **Red LED** = bit 1
@@ -195,7 +193,7 @@ Each release tag tracks the exact pairing QR code used at that build. To view th
 https://github.com/outofjungle/homekit-matchstick-sputter/blob/release-0x08/docs/img/pairing_qr.png
 ```
 
-Replace `release-0x08` with the tag for the firmware version you're looking up.
+Replace `release-0x08` with the tag for the release you're looking up.
 
 ---
 
@@ -207,7 +205,7 @@ A full factory reset clears all HomeKit pairings, WiFi credentials, saved animat
 
 1. **Hold** the reset button (GPIO39)
 2. At **3 seconds** — LEDs turn solid purple. Keep holding.
-3. At **10 seconds** — warning animation begins (3 cycles, ~7 seconds): 8 LEDs flash your firmware version in binary
+3. At **10 seconds** — warning animation begins (3 cycles, ~7 seconds): 8 LEDs flash your pairing config ID in binary
 4. **Keep holding** through the warning animation
 5. When the animation ends, **factory reset executes** — device reboots fresh
 

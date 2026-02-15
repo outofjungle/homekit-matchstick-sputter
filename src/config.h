@@ -1,5 +1,7 @@
 #pragma once
 
+#include "pairing_config.h"
+
 // GPIO Pin Definitions - M5Stack Stamp Pico
 // Based on docs/HARDWARE.md
 
@@ -42,7 +44,12 @@ constexpr const char *DEVICE_NAME = "Matchstick 0x02";
 constexpr const char *DEVICE_MANUFACTURER = "0x76656E Labs";
 constexpr const char *DEVICE_SERIAL = "SPT-001";
 constexpr const char *DEVICE_MODEL = "4CH-LED";
-constexpr const char *DEVICE_FIRMWARE = "1.0.0";
+// Firmware version: major.minor.patch
+//   major = FIRMWARE_MAJOR (manual), minor = PAIRING_CONFIG_ID (auto), patch = FIRMWARE_PATCH (per-commit)
+#define _STRINGIFY(x) #x
+#define _TOSTRING(x)  _STRINGIFY(x)
+constexpr const char *DEVICE_FIRMWARE =
+    _TOSTRING(FIRMWARE_MAJOR) "." _TOSTRING(PAIRING_CONFIG_ID) "." _TOSTRING(FIRMWARE_PATCH);
 
 // Channel Defaults
 constexpr int NUM_CHANNELS = 4;

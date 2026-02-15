@@ -42,6 +42,15 @@ def read_current_config_id(path):
     return int(m.group(1)) if m else 0
 
 
+def read_firmware_major(path):
+    if not os.path.exists(path):
+        return 1
+    with open(path) as f:
+        text = f.read()
+    m = re.search(r"#define\s+FIRMWARE_MAJOR\s+(\d+)", text)
+    return int(m.group(1)) if m else 1
+
+
 def gen_homekit_setup_uri(setup_code, setup_id, category=2, flags=2):
     """Encode a HomeKit setup URI (X-HM://...) from pairing parameters.
 
@@ -121,6 +130,7 @@ def generate_qr_image(uri, formatted_code, output_path):
 
 def main():
     config_id = read_current_config_id(HEADER_PATH) + 1
+    firmware_major = read_firmware_major(HEADER_PATH)
     setup_code = generate_setup_code()
     setup_id = generate_setup_id()
 
@@ -133,6 +143,9 @@ def main():
 #define PAIRING_SETUP_CODE "{setup_code}"      // Displayed as {formatted}
 #define PAIRING_SETUP_ID   "{setup_id}"          // 4-char QR setup ID
 #define PAIRING_CONFIG_ID  {config_id}               // Incremented each generation
+
+#define FIRMWARE_MAJOR  {firmware_major}                   // Rolled manually
+#define FIRMWARE_PATCH  0                   // Reset to 0 when PAIRING_CONFIG_ID changes
 """
 
     with open(HEADER_PATH, "w") as f:

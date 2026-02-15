@@ -72,6 +72,7 @@
     .led-area {
       display: flex;
       justify-content: center;
+      width: 100%;
       margin-bottom: 1.5rem;
     }
 
@@ -295,6 +296,12 @@
         margin-bottom: 1.2rem;
       }
 
+      /* LED row fills the available screen width; PCB clips off the right */
+      .led-row-wrapper {
+        width: 100%;
+        overflow: hidden;
+      }
+
       .led-row {
         width: 100%;
       }
@@ -318,8 +325,9 @@
         font-size: 0.55rem;
       }
 
+      /* PCB peeks in from the right and is clipped by the wrapper */
       .pcb-section {
-        display: none;
+        pointer-events: none;
       }
 
       button.reset-btn {

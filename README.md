@@ -2,51 +2,36 @@
 
 A 4-channel HomeKit LED controller based on the M5Stack Stamp Pico (ESP32). Controls up to 800 WS2811 LEDs across 4 independent channels, each fully controllable from Apple Home or Siri. Includes 34 ambient animation modes.
 
----
+![Matchstick LED Controller](docs/img/matchstick0x02.png)
 
-## Setup
+### Features
 
-### WiFi Configuration
-
-The device ships without WiFi credentials. To configure:
-
-1. **Hold** the reset button (GPIO39) for **3 seconds**
-2. LEDs turn **solid purple** — keep holding or release
-3. **Release** at 3 seconds to enter AP mode
-4. Connect your phone to WiFi network **"Matchstick-Setup"** (open, no password)
-5. A captive portal opens — enter your home WiFi SSID and password
-6. The device saves credentials and reconnects automatically
-
-### HomeKit Pairing
-
-1. Open the **Apple Home** app on your iPhone or iPad
-2. Tap **+** → **Add Accessory**
-3. Scan the QR code below
-4. If prompted about an "Uncertified Accessory", tap **Add Anyway**
-5. The device appears as **"Matchstick 0x02"** — a bridge with 4 lights
-6. Assign lights to rooms and tap **Done**
-
-You will see 4 light accessories: **Sputter One**, **Sputter Two**, **Sputter Three**, **Sputter Four**.
-
-#### Pairing QR Code
-
-![Pairing QR Code](docs/img/pairing_qr.png)
-
-> **QR code not working?** Try a [factory reset](#factory-reset) first to clear any previous pairings. If it still doesn't work, your device may be running a different firmware version — **[use the interactive decoder →](https://outofjungle.github.io/homekit-matchstick-sputter/)** to identify your version and find the matching QR code.
-
+- 4 independent LED channels, 200 LEDs each (800 total WS2811 LEDs)
+- Full Apple Home / Siri control — power, brightness, and color per channel
+- 34 ambient animation modes with normal and inverted variants
+- WiFi captive portal setup — no app required
+- Persistent settings across reboots (animation mode, channel defaults)
 
 ---
 
-## Using the Device
+## Hardware at a Glance
 
-### HomeKit Controls
+| Spec | Value |
+|------|-------|
+| Board | M5Stack Stamp Pico |
+| MCU | ESP32-PICO-D4 |
+| LED Channels | 4 × WS2811, 200 LEDs each |
+| Total LEDs | 800 |
+| LED Protocol | Single-wire serial (RMT) |
+| Power Required | 5V @ 50A minimum for full brightness |
+| WiFi | 2.4GHz 802.11 b/g/n |
+| HomeKit | Via HomeSpan (HAP protocol) |
 
-Each of the 4 channels can be independently controlled from Apple Home or Siri:
+See [`docs/HARDWARE.md`](docs/HARDWARE.md) for full wiring details and power calculations.
 
-- **Power** — on/off per channel
-- **Brightness** — 0–100% (also affects animation density in some modes)
-- **Color** — full hue/saturation control
-- **Siri** — "Hey Siri, turn on Sputter One" / "Set Sputter Two to blue"
+---
+
+## Controls
 
 ### Animation Button (GPIO0)
 
@@ -71,17 +56,58 @@ Animation mode is saved to flash and restored on reboot.
 
 ---
 
-## Animation Modes
+## Quick Start
+
+### WiFi Configuration
+
+The device ships without WiFi credentials. To configure:
+
+1. **Hold** the reset button (GPIO39) for **3 seconds**
+2. LEDs turn **solid purple** — keep holding or release
+3. **Release** at 3 seconds to enter AP mode
+4. Connect your phone to WiFi network **"Matchstick-Setup"** (open, no password)
+5. A captive portal opens — enter your home WiFi SSID and password
+6. The device saves credentials and reconnects automatically
+
+### HomeKit Pairing
+
+1. Open the **Apple Home** app on your iPhone or iPad
+2. Tap **+** → **Add Accessory**
+3. Scan the QR code below
+4. If prompted about an "Uncertified Accessory", tap **Add Anyway**
+5. The device appears as **"Matchstick 0x02"** — a bridge with 4 lights
+6. Assign lights to rooms and tap **Done**
+
+You will see 4 light accessories: **Sputter One**, **Sputter Two**, **Sputter Three**, **Sputter Four**.
+
+Each channel can be independently controlled from Apple Home or Siri:
+
+- **Power** — on/off per channel
+- **Brightness** — 0–100% (also affects animation density in some modes)
+- **Color** — full hue/saturation control
+- **Siri** — "Hey Siri, turn on Sputter One" / "Set Sputter Two to blue"
+
+#### Pairing QR Code
+
+![Pairing QR Code](docs/img/pairing_qr.png)
+
+> **QR code not working?** Try a [factory reset](#factory-reset) first to clear any previous pairings. If it still doesn't work, your device may be running a different firmware version — **[use the interactive decoder →](https://outofjungle.github.io/homekit-matchstick-sputter/)** to identify your version and find the matching QR code.
+
+---
+
+## Detailed Documentation
+
+### Animation Modes
 
 The device cycles through 34 modes in order. Short-press the animation button to advance.
 
-### HomeKit Mode
+#### HomeKit Mode
 
 | # | Mode | Description |
 |---|------|-------------|
 | 0 | **HomeKit** | Normal HomeKit-controlled operation. No animation. |
 
-### Inverted Animations (dark sparkle base)
+#### Inverted Animations (dark sparkle base)
 
 These modes use a dark background: 40 of 200 LEDs glow at any moment, each fading in and out with a smooth sine hump (~2–6s per pulse).
 
@@ -104,7 +130,7 @@ These modes use a dark background: 40 of 200 LEDs glow at any moment, each fadin
 | 15 | **Inv. Square Rain** | 4-color square rain on dark sparkle |
 | 16 | **Inv. Square Twinkle** | 4-color square twinkle on dark sparkle |
 
-### Normal Animations (bright Markov base)
+#### Normal Animations (bright Markov base)
 
 These modes use a bright, undulating base layer where all 200 LEDs glow continuously.
 
@@ -127,13 +153,13 @@ These modes use a bright, undulating base layer where all 200 LEDs glow continuo
 | 31 | **Square Rain** | 4-color square rain |
 | 32 | **Square Twinkle** | 4-color square twinkle |
 
-### Rainbow
+#### Rainbow
 
 | # | Mode | Description |
 |---|------|-------------|
 | 33 | **Rainbow** | Full-spectrum rainbow sweep across all channels |
 
-### Color Harmony Reference
+#### Color Harmony Reference
 
 | Harmony | Colors | Hue Offsets | Character |
 |---------|--------|-------------|-----------|
@@ -145,13 +171,13 @@ These modes use a bright, undulating base layer where all 200 LEDs glow continuo
 
 ---
 
-## Identifying Your Firmware Version
+### Identifying Your Firmware Version
 
 Each verified firmware build has a `PAIRING_CONFIG_ID` and a corresponding git tag.
 
 **Current release:** `PAIRING_CONFIG_ID = 8` → git tag `release-0x08`
 
-### Reading the Version from LEDs
+#### Reading the Version from LEDs
 
 During the factory reset warning animation, the first 8 LEDs display `PAIRING_CONFIG_ID` in binary:
 - **Red LED** = bit 1
@@ -161,7 +187,7 @@ During the factory reset warning animation, the first 8 LEDs display `PAIRING_CO
 **[Use the interactive decoder →](https://outofjungle.github.io/homekit-matchstick-sputter/)**
 _(or open `docs/index.html` locally)_
 
-### Finding the QR Code for a Specific Release
+#### Finding the QR Code for a Specific Release
 
 Each release tag tracks the exact pairing QR code used at that build. To view the QR code for a specific release, navigate to the tag on GitHub:
 
@@ -173,11 +199,11 @@ Replace `release-0x08` with the tag for the firmware version you're looking up.
 
 ---
 
-## Factory Reset
+### Factory Reset
 
 A full factory reset clears all HomeKit pairings, WiFi credentials, saved animation mode, and channel defaults.
 
-### Step-by-Step
+#### Step-by-Step
 
 1. **Hold** the reset button (GPIO39)
 2. At **3 seconds** — LEDs turn solid purple. Keep holding.
@@ -185,7 +211,7 @@ A full factory reset clears all HomeKit pairings, WiFi credentials, saved animat
 4. **Keep holding** through the warning animation
 5. When the animation ends, **factory reset executes** — device reboots fresh
 
-### Cancelling
+#### Cancelling
 
 Release the button at any point during or after the warning animation (before it ends) to cancel:
 - LEDs turn **solid green** for 3 seconds as confirmation of cancellation
@@ -193,20 +219,15 @@ Release the button at any point during or after the warning animation (before it
 
 ---
 
-## Hardware Summary
+## Troubleshooting
 
-| Spec | Value |
-|------|-------|
-| Board | M5Stack Stamp Pico |
-| MCU | ESP32-PICO-D4 |
-| LED Channels | 4 × WS2811, 200 LEDs each |
-| Total LEDs | 800 |
-| LED Protocol | Single-wire serial (RMT) |
-| Power Required | 5V @ 50A minimum for full brightness |
-| WiFi | 2.4GHz 802.11 b/g/n |
-| HomeKit | Via HomeSpan (HAP protocol) |
+| Problem | Solution |
+|---------|----------|
+| **QR code not working** | Do a [factory reset](#factory-reset) first to clear previous pairings, then try scanning again. If it still fails, your device may be on a different firmware version — [use the interactive decoder](https://outofjungle.github.io/homekit-matchstick-sputter/) to find the right QR code. |
+| **WiFi not connecting** | Re-enter AP mode: hold the reset button for 3 seconds until LEDs turn purple, then release. Reconnect to "Matchstick-Setup" and re-enter credentials. |
+| **Device not responding** | Try a [factory reset](#factory-reset) to restore the device to a clean state. |
 
-See [`docs/HARDWARE.md`](docs/HARDWARE.md) for full wiring details and power calculations.
+See [`docs/HOMESPAN.md`](docs/HOMESPAN.md) for additional HomeSpan-specific troubleshooting and serial commands.
 
 ---
 

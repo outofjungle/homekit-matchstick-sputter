@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Matchstick 0x02 Pairing QR code Decoder</title>
+  <title>Matchstick 0x02 Pairing QR Code Decoder</title>
   <style>
     * {
       box-sizing: border-box;
@@ -32,16 +32,58 @@
     .subtitle {
       font-size: 0.9rem;
       color: #555555;
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
       text-align: center;
+    }
+
+    /* Factory reset instructions */
+    .instructions {
+      max-width: 600px;
+      width: 100%;
+      background: #e4e4e4;
+      border-radius: 8px;
+      padding: 1.2rem 1.4rem;
+      margin-bottom: 2rem;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    .instructions h2 {
+      font-size: 1rem;
+      margin-bottom: 0.8rem;
+      color: #111;
+    }
+
+    .instructions ol {
+      padding-left: 1.4rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .instructions ol li {
+      margin-bottom: 0.4rem;
+    }
+
+    .instructions p {
+      color: #444;
+    }
+
+    /* LED area: LED row centered; PCB image absolutely positioned so it
+       doesn't affect the centering of the LED row */
+    .led-area {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Wrapper is the positioning context for the PCB section */
+    .led-row-wrapper {
+      position: relative;
     }
 
     .led-row {
       display: flex;
       flex-wrap: nowrap;
       gap: 0;
-      justify-content: center;
-      margin-bottom: 1.5rem;
     }
 
     .led-cell {
@@ -59,6 +101,11 @@
       border: none;
       background: #ffffff;
       display: block;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     .led-cell:first-child img {
@@ -80,68 +127,49 @@
       height: 0.85rem;
     }
 
-    .led-cell input {
-      width: 40px;
-      height: 40px;
-      text-align: center;
-      font-size: 1.2rem;
-      font-family: monospace;
-      font-weight: bold;
-      background: #ffffff;
-      color: #1a1a1a;
-      border: 2px solid #999999;
-      border-radius: 4px;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-
-    .led-cell input:focus {
-      border-color: #333333;
-    }
-
-    .led-cell input.valid-0 {
-      border-color: #3355bb;
-      color: #3355bb;
-    }
-
-    .led-cell input.valid-1 {
-      border-color: #bb3333;
-      color: #bb3333;
-    }
-
-    /* Mobile tap-target button */
-    .led-tap-btn {
-      min-width: 44px;
-      min-height: 44px;
-      background: #e0e0e0;
-      border: 2px solid #999999;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 1.1rem;
-      font-family: monospace;
-      font-weight: bold;
-      color: #555555;
+    /* PCB reference section — absolutely positioned to the right of the LED row,
+       vertically centered on the LED images (top: 40px = half of 80px LED height) */
+    .pcb-section {
+      position: absolute;
+      left: 100%;
+      top: 40px;
+      transform: translateY(-50%);
       display: flex;
       align-items: center;
-      justify-content: center;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-      user-select: none;
-      -webkit-user-select: none;
-      -webkit-touch-callout: none;
-      transition: background 0.1s, border-color 0.1s;
     }
 
-    .led-tap-btn[data-val="0"] {
-      border-color: #3355bb;
-      color: #3355bb;
-      background: #e8ecf8;
+    .connector-line {
+      width: 32px;
+      height: 4px;
+      background: #000000;
+      flex-shrink: 0;
+      /* add a matching line 5px above (4px line + 1px gap) and below */
+      box-shadow: 0 -5px 0 0 #000000, 0 5px 0 0 #000000;
     }
 
-    .led-tap-btn[data-val="1"] {
-      border-color: #bb3333;
-      color: #bb3333;
-      background: #f8e8e8;
+    /*
+     * PCB image is 2765×1439 (landscape, aspect ~1.92:1).
+     * Rotating 90° CW: visual width ≈ original-height/scale, visual height ≈ original-width/scale.
+     * We want visual height = 120px → CSS width = 120px, CSS height = 120/1.92 ≈ 63px.
+     * Wrapper reserves the visual bounding box (63px wide × 120px tall) in layout.
+     */
+    .pcb-wrapper {
+      position: relative;
+      width: 63px;
+      height: 120px;
+      flex-shrink: 0;
+      overflow: visible;
+    }
+
+    .pcb-image {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 120px;
+      height: auto;
+      transform: translate(-50%, -50%) rotate(90deg);
+      transform-origin: center center;
+      object-fit: contain;
     }
 
     .legend {
@@ -170,6 +198,11 @@
 
     .dot-blue {
       background: #4466cc;
+    }
+
+    .dot-white {
+      background: #ffffff;
+      border: 1px solid #aaaaaa;
     }
 
     .result {
@@ -208,6 +241,13 @@
       font-weight: bold;
       padding: 0.6rem 1.2rem;
       border-radius: 6px;
+    }
+
+    .release-link .qr-error .tag {
+      background: #6b1a1a;
+      color: #f4b8b8;
+      border-radius: 3px;
+      padding: 0 0.3em;
     }
 
     button.reset-btn {
@@ -278,14 +318,8 @@
         font-size: 0.55rem;
       }
 
-      .mobile-hidden {
-        display: none !important;
-      }
-
-      .led-tap-btn {
-        width: 100%;
-        min-height: 44px;
-        font-size: 1rem;
+      .pcb-section {
+        display: none;
       }
 
       button.reset-btn {
@@ -301,49 +335,102 @@
 </head>
 
 <body>
-  <h1>Matchstick 0x02 Pairing QR code Decoder</h1>
-  <p class="subtitle">Read the 8 LEDs left-to-right during factory reset, then enter each bit below.</p>
+  <h1>Matchstick 0x02 Pairing QR Code Decoder</h1>
+  <p class="subtitle">Click each LED image to match what you see on the device, then scan the QR code below.</p>
+
+  <section class="instructions">
+    <h2>How to trigger the LED display:</h2>
+    <ol>
+      <li>Press and <strong>hold</strong> the reset button on the Matchstick board</li>
+      <li>After <strong>3 seconds</strong>, the LEDs will turn solid purple — <strong>keep holding</strong></li>
+      <li>After <strong>10 seconds</strong>, the LEDs will display the firmware version as a binary color pattern
+        (blue and red LEDs) for about 10 seconds — this is the pattern you need to read</li>
+      <li><strong>Release the button now</strong> — if you keep holding past the 10-second display, the device will
+        factory reset and erase all settings, including WiFi configuration</li>
+      <li><strong>Read the LEDs:</strong> Look at the LED strip from the connector end (see board image). LED 1 (LSB)
+        is closest to the board connector. Read all 8 LEDs and click the matching colors below.</li>
+    </ol>
+    <p>Once all 8 LED colors are set, the decoder will look up the matching firmware release. If the pattern
+      corresponds to a valid build, the pairing QR code will be displayed below. If not, you will see an error
+      indicating the version was not found.</p>
+  </section>
 
   <div class="legend">
-    <span><span class="dot dot-red"></span> Red = 1</span>
     <span><span class="dot dot-blue"></span> Blue = 0</span>
+    <span><span class="dot dot-red"></span> Red = 1</span>
+    <span><span class="dot dot-white"></span> White = not set</span>
   </div>
 
-  <div class="led-row" id="ledRow"></div>
+  <div class="led-area">
+    <div class="led-row-wrapper">
+      <div class="led-row" id="ledRow"></div>
+      <div class="pcb-section">
+        <div class="connector-line"></div>
+        <div class="pcb-wrapper">
+          <img class="pcb-image" src="img/matchstick0x02.png"
+            alt="Matchstick PCB board — LED 1 (LSB) is at the connector end" />
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div class="result" id="result"></div>
   <div class="release-link" id="releaseLink"></div>
   <button class="reset-btn" onclick="resetAll()">Clear / Reset</button>
   <a class="github-link" href="https://github.com/outofjungle/homekit-matchstick-sputter" title="View on GitHub">
-    <svg viewBox="0 0 98 96" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z"/></svg>
+    <svg viewBox="0 0 98 96" xmlns="http://www.w3.org/2000/svg">
+      <path fill-rule="evenodd" clip-rule="evenodd"
+        d="M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z" />
+    </svg>
   </a>
 
   <script>
     const IMGS = { '': 'img/white.png', '0': 'img/blue.png', '1': 'img/red.png' };
-    const REPO = 'https://github.com/outofjungle/homekit-matchstick-sputter';
 
-    // State array — source of truth for all 8 LED values ('', '0', or '1')
+    // State array — source of truth for all 8 LED values ('0', '1', or '' for unset)
     const values = ['', '', '', '', '', '', '', ''];
 
     const images = [];
-    const inputs = []; // desktop inputs (may be empty on mobile)
     const row = document.getElementById('ledRow');
 
-    function isMobile() {
-      return window.matchMedia('(max-width: 480px)').matches;
-    }
+    // Click cycles: 0 → 1 → '' → 0
+    const CYCLE = { '0': '1', '1': '', '': '0' };
 
     function buildCell(pos) {
       const ledNum = 8 - pos; // LED 8 → pos 0 (MSB), LED 1 → pos 7 (LSB)
 
       const cell = document.createElement('div');
       cell.className = 'led-cell';
-      cell.dataset.pos = pos;
 
       const img = document.createElement('img');
       img.src = IMGS[values[pos]];
       img.alt = `LED ${ledNum}`;
+      img.setAttribute('role', 'button');
+      img.setAttribute('tabindex', '0');
       images[pos] = img;
+
+      function applyState() {
+        const v = values[pos];
+        img.src = IMGS[v];
+        const stateLabel = v === '' ? 'not set' : (v === '0' ? 'blue (0)' : 'red (1)');
+        img.setAttribute('aria-label', `LED ${ledNum}: ${stateLabel}, click to change`);
+      }
+
+      applyState();
+
+      img.addEventListener('click', () => {
+        values[pos] = CYCLE[values[pos]];
+        applyState();
+        update();
+      });
+
+      // Keyboard accessibility
+      img.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          img.click();
+        }
+      });
 
       const label = document.createElement('div');
       label.className = 'led-label';
@@ -358,90 +445,14 @@
       cell.appendChild(label);
       cell.appendChild(bitLabel);
 
-      if (isMobile()) {
-        const btn = document.createElement('button');
-        btn.className = 'led-tap-btn';
-        btn.type = 'button';
-
-        function applyBtnState() {
-          const v = values[pos];
-          btn.dataset.val = v;
-          btn.textContent = v === '' ? '?' : v;
-          const stateLabel = v === '' ? 'blank' : (v === '0' ? 'blue (0)' : 'red (1)');
-          btn.setAttribute('aria-label', `LED ${ledNum}: ${stateLabel}, tap to change`);
-          img.src = IMGS[v];
-        }
-
-        applyBtnState();
-
-        btn.addEventListener('click', () => {
-          // Cycle: '' → '0' → '1' → ''
-          const cycle = { '': '0', '0': '1', '1': '' };
-          values[pos] = cycle[values[pos]];
-          applyBtnState();
-          update();
-        });
-
-        cell.appendChild(btn);
-      } else {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.maxLength = 1;
-        input.inputMode = 'numeric';
-        input.setAttribute('aria-label', `LED ${ledNum}`);
-        input.value = values[pos];
-        if (values[pos] === '0' || values[pos] === '1') {
-          input.className = `valid-${values[pos]}`;
-        }
-        inputs[pos] = input;
-
-        input.addEventListener('keydown', (e) => {
-          if (e.key === '0' || e.key === '1') return;
-          if (e.key === 'Backspace') {
-            e.preventDefault();
-            values[pos] = '';
-            input.value = '';
-            input.className = '';
-            images[pos].src = IMGS[''];
-            update();
-            if (pos > 0) inputs[pos - 1].focus();
-            return;
-          }
-          if (['Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
-          e.preventDefault();
-        });
-
-        input.addEventListener('input', () => {
-          const val = input.value;
-          if (val !== '0' && val !== '1') {
-            values[pos] = '';
-            input.value = '';
-            input.className = '';
-            images[pos].src = IMGS[''];
-          } else {
-            values[pos] = val;
-            input.className = `valid-${val}`;
-            images[pos].src = IMGS[val];
-            if (pos < 7) inputs[pos + 1].focus();
-          }
-          update();
-        });
-
-        cell.appendChild(input);
-      }
-
       return cell;
     }
 
-    function rebuildControls() {
+    function buildAll() {
       row.innerHTML = '';
       images.length = 0;
-      inputs.length = 0;
       for (let pos = 0; pos < 8; pos++) {
         row.appendChild(buildCell(pos));
-      }
-      if (!isMobile() && inputs[0]) {
-        inputs[0].focus();
       }
       update();
     }
@@ -463,7 +474,7 @@
       const hex = decimal.toString(16).toUpperCase().padStart(2, '0');
       const tag = `release-0x${hex}`;
 
-      resultEl.innerHTML = `Firmware version: <span class="hex-value">0x${hex}</span>`;
+      resultEl.innerHTML = `Build release version: <span class="hex-value">0x${hex}</span>`;
 
       const rawUrl = `https://raw.githubusercontent.com/outofjungle/homekit-matchstick-sputter/refs/tags/${tag}/docs/img/pairing_qr.png`;
       linkEl.innerHTML = '';
@@ -471,7 +482,7 @@
       qrImg.alt = `QR code for ${tag}`;
       qrImg.src = rawUrl;
       qrImg.onerror = () => {
-        linkEl.innerHTML = `<span class="qr-error">Invalid release version ${tag} — QR code not found</span>`;
+        linkEl.innerHTML = `<span class="qr-error">No build found for <span class="tag">${tag}</span></span>`;
       };
       linkEl.appendChild(qrImg);
     }
@@ -480,24 +491,15 @@
       for (let i = 0; i < 8; i++) {
         values[i] = '';
       }
-      // Rebuild to reflect cleared state (handles both modes)
-      rebuildControls();
-      document.getElementById('result').innerHTML = '';
-      document.getElementById('releaseLink').innerHTML = '';
+      for (let pos = 0; pos < 8; pos++) {
+        images[pos].src = IMGS[''];
+        images[pos].setAttribute('aria-label', `LED ${8 - pos}: not set, click to change`);
+      }
+      update();
     }
 
-    // Rebuild on orientation/resize changes that cross the breakpoint
-    const mq = window.matchMedia('(max-width: 480px)');
-    let lastMobile = mq.matches;
-    mq.addEventListener('change', (e) => {
-      if (e.matches !== lastMobile) {
-        lastMobile = e.matches;
-        rebuildControls();
-      }
-    });
-
     // Initial build
-    rebuildControls();
+    buildAll();
   </script>
 </body>
 

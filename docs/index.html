@@ -268,8 +268,9 @@
     }
 
     .github-link {
-      display: block;
-      margin-top: 0.8rem;
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
       color: #555555;
       transition: color 0.15s;
     }
@@ -283,6 +284,58 @@
       width: 28px;
       height: 28px;
       fill: currentColor;
+    }
+
+    /* ── Latest release indicator ───────────────────────────────── */
+    .latest-release {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 1.2rem;
+      font-size: 0.8rem;
+      color: #222222;
+    }
+
+    .latest-release.hidden {
+      display: none;
+    }
+
+    .latest-release-label {
+      white-space: nowrap;
+    }
+
+    .latest-release-dots {
+      display: flex;
+      gap: 3px;
+    }
+
+    .latest-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .latest-dot-red {
+      background: #cc4444;
+    }
+
+    .latest-dot-blue {
+      background: #4466cc;
+    }
+
+    #latestReleaseHex {
+      font-family: monospace;
+      font-weight: bold;
+      text-decoration: underline;
+      border: 1px solid #888888;
+      border-radius: 3px;
+      padding: 0.1em 0.35em;
+      cursor: pointer;
+    }
+
+    #latestReleaseHex:hover {
+      background: #bbbbbb;
     }
 
     /* ── Mobile overrides ────────────────────────────────────────── */
@@ -343,6 +396,13 @@
 </head>
 
 <body>
+  <a class="github-link" href="https://github.com/outofjungle/homekit-matchstick-sputter" title="View on GitHub">
+    <svg viewBox="0 0 98 96" xmlns="http://www.w3.org/2000/svg">
+      <path fill-rule="evenodd" clip-rule="evenodd"
+        d="M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z" />
+    </svg>
+  </a>
+
   <h1>Matchstick 0x02 Pairing QR Code Decoder</h1>
   <p class="subtitle">Click each LED image to match what you see on the device, then scan the QR code below.</p>
 
@@ -356,7 +416,7 @@
       <li><strong>Release the button now</strong> — if you keep holding past the 10-second display, the device will
         factory reset and erase all settings, including WiFi configuration</li>
       <li><strong>Read the LEDs:</strong> Look at the LED strip from the connector end (see board image). LED 1 (LSB)
-        is closest to the board connector. Read all 8 LEDs and click the matching colors below.</li>
+        is closest to the board connector. Read all 8 LEDs and tap the matching color below for each LED position.</li>
     </ol>
     <p>Once all 8 LED colors are set, the decoder will look up the matching release tag. If the pattern
       corresponds to a valid build, the pairing QR code will be displayed below. If not, you will see an error
@@ -367,6 +427,12 @@
     <span><span class="dot dot-blue"></span> Blue = 0</span>
     <span><span class="dot dot-red"></span> Red = 1</span>
     <span><span class="dot dot-white"></span> White = not set</span>
+  </div>
+
+  <div class="latest-release hidden" id="latestRelease">
+    <span class="latest-release-label">Latest release:</span>
+    <span class="latest-release-dots" id="latestReleaseDots"></span>
+    <span id="latestReleaseHex" onclick="applyLatestRelease()" title="Apply this pattern to the LED strip"></span>
   </div>
 
   <div class="led-area">
@@ -384,16 +450,10 @@
 
   <div class="result" id="result"></div>
   <div class="release-link" id="releaseLink"></div>
-  <button class="reset-btn" onclick="resetAll()">Clear / Reset</button>
-  <a class="github-link" href="https://github.com/outofjungle/homekit-matchstick-sputter" title="View on GitHub">
-    <svg viewBox="0 0 98 96" xmlns="http://www.w3.org/2000/svg">
-      <path fill-rule="evenodd" clip-rule="evenodd"
-        d="M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z" />
-    </svg>
-  </a>
 
   <script>
     const IMGS = { '': 'img/white.png', '0': 'img/blue.png', '1': 'img/red.png' };
+    let latestReleaseBinary = null;
 
     // State array — source of truth for all 8 LED values ('0', '1', or '' for unset)
     const values = ['', '', '', '', '', '', '', ''];
@@ -506,8 +566,54 @@
       update();
     }
 
+    async function fetchLatestRelease() {
+      try {
+        const resp = await fetch('https://api.github.com/repos/outofjungle/homekit-matchstick-sputter/tags?per_page=100');
+        if (!resp.ok) return;
+        const tags = await resp.json();
+        if (!Array.isArray(tags)) return;
+
+        const releaseTags = tags
+          .map(t => t.name)
+          .filter(n => /^release-0x[0-9a-fA-F]+$/.test(n))
+          .map(n => ({ name: n, value: parseInt(n.replace('release-0x', ''), 16) }))
+          .sort((a, b) => b.value - a.value);
+
+        if (releaseTags.length === 0) return;
+
+        const latest = releaseTags[0];
+        const hex = latest.value.toString(16).toUpperCase().padStart(2, '0');
+        const binary = latest.value.toString(2).padStart(8, '0');
+
+        const dotsEl = document.getElementById('latestReleaseDots');
+        dotsEl.innerHTML = '';
+        for (let i = 0; i < 8; i++) {
+          const dot = document.createElement('span');
+          dot.className = `latest-dot ${binary[i] === '1' ? 'latest-dot-red' : 'latest-dot-blue'}`;
+          dot.title = `LED ${8 - i}: ${binary[i] === '1' ? '1 (red)' : '0 (blue)'}`;
+          dotsEl.appendChild(dot);
+        }
+
+        document.getElementById('latestReleaseHex').textContent = `0x${hex}`;
+        document.getElementById('latestRelease').classList.remove('hidden');
+        latestReleaseBinary = binary;
+        applyLatestRelease();
+      } catch (e) {
+        // silently hide on network/rate-limit errors
+      }
+    }
+
+    function applyLatestRelease() {
+      if (!latestReleaseBinary) return;
+      for (let i = 0; i < 8; i++) {
+        values[i] = latestReleaseBinary[i];
+      }
+      buildAll();
+    }
+
     // Initial build
     buildAll();
+    fetchLatestRelease();
   </script>
 </body>
 

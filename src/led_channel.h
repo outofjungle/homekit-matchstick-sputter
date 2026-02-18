@@ -241,8 +241,16 @@ public:
             }
         }
 
+        // Notify status LED of hue change
+        if (onHueChanged) onHueChanged(desired.hue);
+
         return true;  // Return true to indicate successful update
     }
+
+    // Callback invoked whenever this channel's desired state changes (any characteristic).
+    // Called with the channel's current hue (0-360) so the caller can track the last
+    // channel touched. Set from main.cpp after all channel services are created.
+    void (*onHueChanged)(int hue) = nullptr;
 
     // Clear this channel's NVS storage (used during factory reset)
     void clearStorage() {

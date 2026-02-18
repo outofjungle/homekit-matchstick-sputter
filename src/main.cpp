@@ -13,6 +13,14 @@ CRGB ledChannel2[NUM_LEDS_PER_CHANNEL];        // WS2812B on GPIO 18
 CRGB ledChannel3[NUM_LEDS_PER_CHANNEL];        // WS2812B on GPIO 19
 CRGB ledChannel4[NUM_LEDS_PER_CHANNEL];        // WS2812B on GPIO 25
 
+// Status LED (SK6812 RGB, 1 pixel) - shows hue of last changed channel
+CRGB ledStatus[1];
+int statusLedHue = getDefaultHue(2);  // default: channel 2 hue
+
+static void onChannelHueChanged(int hue) {
+    statusLedHue = hue;
+}
+
 // LED Channel service instances (for boot flash handling)
 DEV_LedChannel* channel1Service = nullptr;
 DEV_LedChannel* channel2Service = nullptr;
@@ -364,6 +372,7 @@ void setup() {
     FastLED.addLeds<WS2812B, PIN_LED_CH2, GRB>(ledChannel2, NUM_LEDS_PER_CHANNEL);
     FastLED.addLeds<WS2812B, PIN_LED_CH3, GRB>(ledChannel3, NUM_LEDS_PER_CHANNEL);
     FastLED.addLeds<WS2812B, PIN_LED_CH4, GRB>(ledChannel4, NUM_LEDS_PER_CHANNEL);
+    FastLED.addLeds<SK6812, PIN_STATUS_SK6812, GRB>(ledStatus, 1);  // Status LED (CH0)
 
     // Set brightness (25% for safe testing)
     FastLED.setBrightness(64);
@@ -373,6 +382,7 @@ void setup() {
     fill_solid(ledChannel2, NUM_LEDS_PER_CHANNEL, CRGB::Black);
     fill_solid(ledChannel3, NUM_LEDS_PER_CHANNEL, CRGB::Black);
     fill_solid(ledChannel4, NUM_LEDS_PER_CHANNEL, CRGB::Black);
+    ledStatus[0] = CRGB::Black;
     FastLED.show();
 
     Serial.println("FastLED initialized.");
@@ -445,6 +455,13 @@ void setup() {
     // Configure animation manager with channel services
     animationMgr->setChannelServices(channel1Service, channel2Service, channel3Service, channel4Service);
 
+    // Initialize status LED hue from channel 2's loaded state, then track any channel changes
+    statusLedHue = channel2Service->getDesiredHue();
+    channel1Service->onHueChanged = onChannelHueChanged;
+    channel2Service->onHueChanged = onChannelHueChanged;
+    channel3Service->onHueChanged = onChannelHueChanged;
+    channel4Service->onHueChanged = onChannelHueChanged;
+
     // Display boot flash colors for channels with brightness=0
     FastLED.show();
 
@@ -477,6 +494,9 @@ void loop() {
 
     // Poll HomeSpan for HomeKit events
     homeSpan.poll();
+
+    // Update status LED (CH0): full saturation and brightness, hue of last changed channel
+    ledStatus[0] = CHSV(map(statusLedHue, 0, 360, 0, 255), 255, 255);
 
     // Update LED strips (called after every HomeSpan update)
     FastLED.show();

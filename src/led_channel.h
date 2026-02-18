@@ -224,9 +224,9 @@ public:
             Serial.printf("Channel %d updated: Power OFF\n", channelNumber);
         }
 
-        // Save state to NVS
+        // Save state to NVS (power always saved as true — boot forces ON by design)
         ChannelStorage::ChannelState state;
-        state.power = powerOn;
+        state.power = true;
         state.hue = h;
         state.saturation = s;
         state.brightness = clampedBrightness;

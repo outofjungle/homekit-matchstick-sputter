@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <FastLED.h>
+#include "../config.h"
 
 // Base class for all ambient animations
 // Animations update all 4 channels simultaneously with non-blocking, timer-based updates
@@ -48,7 +49,8 @@ public:
 
 protected:
     // Common constants shared across animation types
-    static constexpr uint16_t MAX_LEDS = 200;
+    static constexpr uint16_t MAX_LEDS = NUM_LEDS_PER_CHANNEL;
+    static_assert(MAX_LEDS > 0, "NUM_LEDS_PER_CHANNEL must be > 0");
     static constexpr unsigned long FRAME_MS = 50;    // 20fps
     static constexpr int ANGLE_WIDTH = 10;           // ±5° hue spread
 

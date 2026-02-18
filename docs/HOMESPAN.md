@@ -153,7 +153,7 @@ Press these keys in the serial monitor:
 **Problem**: Wrong colors displayed
 - Check color order in main.cpp:24-27 (currently `GRB`)
 - Try changing to `RGB` if colors are swapped
-- Verify LED type matches code (`WS2811`)
+- Verify LED type matches code (`WS2812B`)
 
 **Problem**: LEDs not responding to HomeKit commands
 - Check serial output for "Channel updated" messages

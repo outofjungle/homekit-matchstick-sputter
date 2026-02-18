@@ -9,7 +9,7 @@
 constexpr uint8_t PIN_STATUS_SK6812 = 27; // SK6812 RGB LED (1 pixel) - Channel 0 status indicator
 constexpr uint8_t PIN_STATUS_LED = 22;    // Single-color LED for status indication
 
-// External LED Strip Channels (WS2811, 200 LEDs each)
+// External LED Strip Channels (WS2812B 5V, 200 LEDs each)
 constexpr uint8_t PIN_LED_CH1 = 26; // LED Strip Channel 1 Data
 constexpr uint8_t PIN_LED_CH2 = 18; // LED Strip Channel 2 Data
 constexpr uint8_t PIN_LED_CH3 = 19; // LED Strip Channel 3 Data
@@ -62,13 +62,13 @@ inline int getDefaultHue(int channelNum)
     switch (channelNum)
     {
     case 1:
-        return 0; // Red
-    case 2:
-        return 90; // Yellow/Orange
-    case 3:
-        return 180; // Cyan
-    case 4:
         return 270; // Purple/Magenta
+    case 2:
+        return 0; // Red
+    case 3:
+        return 90; // Yellow/Orange
+    case 4:
+        return 180; // Cyan
     default:
         return 0;
     }

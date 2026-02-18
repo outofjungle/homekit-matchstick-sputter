@@ -29,10 +29,10 @@
 
 | Pin Name | GPIO | Purpose | Max LEDs |
 |----------|------|---------|----------|
-| PIN_LED_CH1 | GPIO26 | WS2811 Strip | 200 |
-| PIN_LED_CH2 | GPIO18 | WS2811 Strip | 200 |
-| PIN_LED_CH3 | GPIO19 | WS2811 Strip | 200 |
-| PIN_LED_CH4 | GPIO25 | WS2811 Strip | 200 |
+| PIN_LED_CH1 | GPIO26 | WS2812B Strip | 200 |
+| PIN_LED_CH2 | GPIO18 | WS2812B Strip | 200 |
+| PIN_LED_CH3 | GPIO19 | WS2812B Strip | 200 |
+| PIN_LED_CH4 | GPIO25 | WS2812B Strip | 200 |
 
 ## PIN_LED_CH0 - Status RGB LED (GPIO27)
 
@@ -76,8 +76,7 @@ Use ESP-IDF's `led_strip` component with RMT backend:
 ## Power Requirements
 
 - **Status LED**: ~60mA max (all colors at full brightness)
-- **Per WS2811 Strip**: ~12A max at full white (200 LEDs × 60mA)
-- **Recommended**: External 5V power supply for LED strips
+- **All 4 strips**: 5V @ 3A external power supply required
 - **MCU**: Can be powered via USB-C or 3.3V pin
 
 ## Pin Constraints

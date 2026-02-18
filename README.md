@@ -1,16 +1,29 @@
 # Matchstick LED Controller
 
-A 4-channel HomeKit LED controller based on the M5Stack Stamp Pico (ESP32). Controls up to 800 WS2811 LEDs across 4 independent channels, each fully controllable from Apple Home or Siri. Includes 34 ambient animation modes.
-
-![Matchstick LED Controller](docs/img/matchstick0x02.png)
+A 4-channel ambient LED controller based on the M5Stack Stamp Pico (ESP32). Drives up to 800 WS2812B LEDs across 4 independent channels, each with a fixed hue and 34 animation modes. Works out of the box with no phone or WiFi required — Apple HomeKit support is optional, for users who want per-channel color and brightness customization.
 
 ### Features
 
-- 4 independent LED channels, 200 LEDs each (800 total WS2811 LEDs)
-- Full Apple Home / Siri control — power, brightness, and color per channel
-- 34 ambient animation modes with normal and inverted variants
-- WiFi captive portal setup — no app required
-- Persistent settings across reboots (animation mode, channel defaults)
+- 4 independent LED channels, 200 LEDs each (800 total WS2812B LEDs)
+- Works standalone — no WiFi, no phone, no app required
+- 4 fixed hues by default (one per channel), selectable from the color wheel
+- 34 ambient animation modes with normal and inverted variants, cycling via onboard button
+- **Optional:** pair with Apple Home for per-channel color, brightness, and on/off control
+- Once configured via Apple Home, settings are saved to flash — WiFi not needed to operate
+- Persistent settings across reboots (animation mode, hue, brightness)
+
+---
+
+![Matchstick LED Controller](docs/img/matchstick0x02-labels.png)
+
+|   | Component | Description |
+|---|-----------|-------------|
+| ⓵ | **CH1 — Sputter One** | Default hue: 270° (Purple/Magenta) |
+| ⓶ | **CH2 — Sputter Two** | Default hue: 0° (Red) |
+| ⓷ | **CH3 — Sputter Three** | Default hue: 90° (Yellow/Orange) |
+| ⓸ | **CH4 — Sputter Four** | Default hue: 180° (Cyan) |
+| ⓹ | **Reset button** | Quick press: restore channel defaults. Hold 3s: WiFi AP mode. Hold 10s+: factory reset |
+| ⓺ | **Animation button** | Short press: cycle animation mode. Long press (2s): toggle inverted variant |
 
 ---
 
@@ -20,10 +33,10 @@ A 4-channel HomeKit LED controller based on the M5Stack Stamp Pico (ESP32). Cont
 |------|-------|
 | Board | M5Stack Stamp Pico |
 | MCU | ESP32-PICO-D4 |
-| LED Channels | 4 × WS2811, 200 LEDs each |
+| LED Channels | 4 × WS2812B, 200 LEDs each |
 | Total LEDs | 800 |
 | LED Protocol | Single-wire serial (RMT) |
-| Power Required | 5V @ 50A minimum for full brightness |
+| Power Required | 5V @ 3A |
 | WiFi | 2.4GHz 802.11 b/g/n |
 | HomeKit | Via HomeSpan (HAP protocol) |
 
@@ -31,45 +44,48 @@ See [`docs/HARDWARE.md`](docs/HARDWARE.md) for full wiring details and power cal
 
 ---
 
-## Controls
+## Wiring
 
-### Animation Button (GPIO0)
+Connect a WS2812B LED strip to each channel's terminal connections — up to 4 strips total, 200 LEDs per channel.
 
-The animation button cycles through 34 animation modes independently of HomeKit:
+Each channel has three terminals: **VCC**, **data** (GPIO pin), and **GND**.
 
-| Press | Action |
-|-------|--------|
-| **Short press** | Cycle to next animation mode |
-| **Long press (2s)** | Toggle between normal and inverted variants of the current mode |
+![Channel pinout](docs/img/pinout.png)
 
-Inverted modes use a dark sparkle base (most LEDs black) instead of the bright base layer.
+| Terminal | Label | WS2812B wire |
+|----------|-------|--------------|
+| VCC | VCC | Red |
+| Data | G26 / G18 / G19 / G25 | Green |
+| GND | GND | White or Black |
 
-Animation mode is saved to flash and restored on reboot.
-
-### Reset Button (GPIO39)
-
-| Hold Duration | Action |
-|---------------|--------|
-| Quick press (<3s) | Restore HomeKit channel defaults (brightness, color) |
-| 3 seconds | Enter WiFi AP mode (solid purple LEDs → release) |
-| 10+ seconds | Trigger factory reset warning animation (see below) |
+> **Important:** Wire colours vary between manufacturers. Always check the datasheet or wiring diagram that came with your LED strip before connecting. Reversing VCC and GND, or connecting data to the wrong pin, can damage the strip or the controller.
 
 ---
 
 ## Quick Start
 
-### WiFi Configuration
+### Standalone Use (No Phone Required)
 
-The device ships without WiFi credentials. To configure:
+Power on the device — it starts immediately with 4 channels, each showing its default hue and animation. No setup needed.
 
-1. **Hold** the reset button (GPIO39) for **3 seconds**
-2. LEDs turn **solid purple** — keep holding or release
-3. **Release** at 3 seconds to enter AP mode
-4. Connect your phone to WiFi network **"Matchstick-Setup"** (open, no password)
-5. A captive portal opens — enter your home WiFi SSID and password
-6. The device saves credentials and reconnects automatically
+- **Animation button ⓺:** short press to cycle through 34 animation modes
+- **Long press (2s):** toggle between normal and inverted variants
 
-### HomeKit Pairing
+That's it. The device runs indefinitely without WiFi or a phone.
+
+### Optional: Apple HomeKit Setup
+
+HomeKit lets you set custom colors, brightness, and on/off state per channel. Settings are saved to flash, so the device keeps them after you disconnect from WiFi.
+
+#### Step 1 — Configure WiFi
+
+1. **Hold** the reset button ⓹ for **3 seconds**
+2. LEDs turn **solid purple** — release at 3 seconds to enter AP mode
+3. Connect your phone to WiFi network **"Matchstick-Setup"** (open, no password)
+4. A captive portal opens — enter your home WiFi SSID and password
+5. The device saves credentials and reconnects automatically
+
+#### Step 2 — Pair with Apple Home
 
 1. Open the **Apple Home** app on your iPhone or iPad
 2. Tap **+** → **Add Accessory**
@@ -87,6 +103,8 @@ Each channel can be independently controlled from Apple Home or Siri:
 - **Color** — full hue/saturation control
 - **Siri** — "Hey Siri, turn on Sputter One" / "Set Sputter Two to blue"
 
+Once you've dialed in your colors and brightness, the device no longer needs WiFi — it runs from flash-saved settings.
+
 #### Pairing QR Code
 
 ![Pairing QR Code](docs/img/pairing_qr.png)
@@ -95,21 +113,40 @@ Each channel can be independently controlled from Apple Home or Siri:
 
 ---
 
-## Detailed Documentation
+## Controls
 
-### Animation Modes
+### Animation Button ⓺ (GPIO0)
 
-The device cycles through 34 modes in order. Short-press the animation button to advance.
+| Press | Action |
+|-------|--------|
+| **Short press** | Cycle to next animation mode |
+| **Long press (2s)** | Toggle between normal and inverted variants of the current mode |
 
-#### HomeKit Mode
+Inverted modes use a dark sparkle base (most LEDs black) instead of the bright base layer. Animation mode is saved to flash and restored on reboot.
+
+### Reset Button ⓹ (GPIO39)
+
+| Hold Duration | Action |
+|---------------|--------|
+| Quick press (<3s) | Restore channel defaults (hue, brightness) |
+| 3 seconds | Enter WiFi AP mode (LEDs turn solid purple → release) |
+| 10+ seconds | Trigger factory reset warning animation (see [Factory Reset](#factory-reset)) |
+
+---
+
+## Animation Modes
+
+Short-press the animation button ⓺ to advance. Long-press (2s) to toggle the inverted variant of the current mode.
+
+### HomeKit Mode
 
 | # | Mode | Description |
 |---|------|-------------|
 | 0 | **HomeKit** | Normal HomeKit-controlled operation. No animation. |
 
-#### Inverted Animations (dark sparkle base)
+### Inverted Animations (dark sparkle base)
 
-These modes use a dark background: 40 of 200 LEDs glow at any moment, each fading in and out with a smooth sine hump (~2–6s per pulse).
+Dark background: 40 of 200 LEDs glow at any moment, each fading in and out with a smooth sine hump (~2–6s per pulse).
 
 | # | Mode | Description |
 |---|------|-------------|
@@ -130,9 +167,9 @@ These modes use a dark background: 40 of 200 LEDs glow at any moment, each fadin
 | 15 | **Inv. Square Rain** | 4-color square rain on dark sparkle |
 | 16 | **Inv. Square Twinkle** | 4-color square twinkle on dark sparkle |
 
-#### Normal Animations (bright Markov base)
+### Normal Animations (bright Markov base)
 
-These modes use a bright, undulating base layer where all 200 LEDs glow continuously.
+Bright, undulating base layer where all 200 LEDs glow continuously.
 
 | # | Mode | Description |
 |---|------|-------------|
@@ -153,13 +190,13 @@ These modes use a bright, undulating base layer where all 200 LEDs glow continuo
 | 31 | **Square Rain** | 4-color square rain |
 | 32 | **Square Twinkle** | 4-color square twinkle |
 
-#### Rainbow
+### Rainbow
 
 | # | Mode | Description |
 |---|------|-------------|
 | 33 | **Rainbow** | Full-spectrum rainbow sweep across all channels |
 
-#### Color Harmony Reference
+### Color Harmony Reference
 
 | Harmony | Colors | Hue Offsets | Character |
 |---------|--------|-------------|-----------|
@@ -171,11 +208,23 @@ These modes use a bright, undulating base layer where all 200 LEDs glow continuo
 
 ---
 
-### Identifying Your Release
+## Factory Reset
+
+A full factory reset clears all HomeKit pairings, WiFi credentials, saved animation mode, and channel defaults.
+
+1. **Hold** the reset button ⓹ (GPIO39)
+2. At **3 seconds** — LEDs turn solid purple. Keep holding.
+3. At **10 seconds** — warning animation begins (3 cycles, ~7 seconds): 8 LEDs flash your pairing config ID in binary
+4. **Keep holding** through the warning animation
+5. When the animation ends, **factory reset executes** — device reboots fresh
+
+To cancel: release the button at any point during the warning animation. LEDs turn **solid green** for 3 seconds to confirm, then resume normal operation.
+
+---
+
+## Identifying Your Release
 
 Each verified firmware build has a `PAIRING_CONFIG_ID` and a corresponding git tag. Use the decoder app to read your device's current pairing config ID from the LEDs.
-
-#### Reading the Pairing Config ID from LEDs
 
 During the factory reset warning animation, the first 8 LEDs display `PAIRING_CONFIG_ID` in binary:
 - **Red LED** = bit 1
@@ -185,35 +234,13 @@ During the factory reset warning animation, the first 8 LEDs display `PAIRING_CO
 **[Use the interactive decoder →](https://outofjungle.github.io/homekit-matchstick-sputter/)**
 _(or open `docs/index.html` locally)_
 
-#### Finding the QR Code for a Specific Release
-
-Each release tag tracks the exact pairing QR code used at that build. To view the QR code for a specific release, navigate to the tag on GitHub:
+Each release tag also tracks the exact pairing QR code used at that build:
 
 ```
 https://github.com/outofjungle/homekit-matchstick-sputter/blob/release-0x08/docs/img/pairing_qr.png
 ```
 
 Replace `release-0x08` with the tag for the release you're looking up.
-
----
-
-### Factory Reset
-
-A full factory reset clears all HomeKit pairings, WiFi credentials, saved animation mode, and channel defaults.
-
-#### Step-by-Step
-
-1. **Hold** the reset button (GPIO39)
-2. At **3 seconds** — LEDs turn solid purple. Keep holding.
-3. At **10 seconds** — warning animation begins (3 cycles, ~7 seconds): 8 LEDs flash your pairing config ID in binary
-4. **Keep holding** through the warning animation
-5. When the animation ends, **factory reset executes** — device reboots fresh
-
-#### Cancelling
-
-Release the button at any point during or after the warning animation (before it ends) to cancel:
-- LEDs turn **solid green** for 3 seconds as confirmation of cancellation
-- Device resumes normal operation
 
 ---
 

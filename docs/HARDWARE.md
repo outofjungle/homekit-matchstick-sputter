@@ -18,9 +18,9 @@ The M5Stack Stamp Pico includes built-in status LEDs for HomeKit status indicati
 
 These are separate from the external LED strip channels and are used for debugging and status display.
 
-### WS2811 LED Strips
+### WS2812B LED Strips
 
-- **Type:** WS2811 (compatible with WS2812)
+- **Type:** WS2812B (5V only — do not use 12V WS2812B strips)
 - **Color Order:** GRB
 - **LEDs per Channel:** 200
 - **Total LEDs:** 800 (4 channels × 200 LEDs)
@@ -46,32 +46,10 @@ These are separate from the external LED strip channels and are used for debuggi
 
 ## Power Considerations
 
-### Power Calculation
-
-Each WS2811 LED at full white (255, 255, 255):
-- Current draw: ~60mA per LED
-- 200 LEDs per channel: 200 × 60mA = 12A
-- 4 channels at full brightness: 4 × 12A = **48A total**
-
 ### Power Supply Requirements
 
-**WARNING:** External power supply required!
-
-- **Minimum Rating:** 5V @ 50A
-- **Recommended:** 5V @ 60A (for safety margin)
+- **Minimum Rating:** 5V @ 3A
 - **DO NOT** power from USB or ESP32 regulators
-
-### Power Management
-
-Current firmware (Phase 1) does not implement:
-- Current limiting
-- Soft start
-- Power monitoring
-
-**Future Phases:**
-- Add configurable brightness limiting
-- Implement current monitoring
-- Add safety shutoffs
 
 ## Wiring Diagram
 

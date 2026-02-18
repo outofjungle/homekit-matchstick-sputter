@@ -8,10 +8,10 @@
 #include "pairing_config.h"
 
 // LED Arrays for all channels
-CRGB ledChannel1[NUM_LEDS_PER_CHANNEL];        // WS2811 on GPIO 26
-CRGB ledChannel2[NUM_LEDS_PER_CHANNEL];        // WS2811 on GPIO 18
-CRGB ledChannel3[NUM_LEDS_PER_CHANNEL];        // WS2811 on GPIO 19
-CRGB ledChannel4[NUM_LEDS_PER_CHANNEL];        // WS2811 on GPIO 25
+CRGB ledChannel1[NUM_LEDS_PER_CHANNEL];        // WS2812B on GPIO 26
+CRGB ledChannel2[NUM_LEDS_PER_CHANNEL];        // WS2812B on GPIO 18
+CRGB ledChannel3[NUM_LEDS_PER_CHANNEL];        // WS2812B on GPIO 19
+CRGB ledChannel4[NUM_LEDS_PER_CHANNEL];        // WS2812B on GPIO 25
 
 // LED Channel service instances (for boot flash handling)
 DEV_LedChannel* channel1Service = nullptr;
@@ -360,10 +360,10 @@ void setup() {
     Serial.println("========================================");
 
     // Initialize FastLED for all channels
-    FastLED.addLeds<WS2811, PIN_LED_CH1, GRB>(ledChannel1, NUM_LEDS_PER_CHANNEL);
-    FastLED.addLeds<WS2811, PIN_LED_CH2, GRB>(ledChannel2, NUM_LEDS_PER_CHANNEL);
-    FastLED.addLeds<WS2811, PIN_LED_CH3, GRB>(ledChannel3, NUM_LEDS_PER_CHANNEL);
-    FastLED.addLeds<WS2811, PIN_LED_CH4, GRB>(ledChannel4, NUM_LEDS_PER_CHANNEL);
+    FastLED.addLeds<WS2812B, PIN_LED_CH1, GRB>(ledChannel1, NUM_LEDS_PER_CHANNEL);
+    FastLED.addLeds<WS2812B, PIN_LED_CH2, GRB>(ledChannel2, NUM_LEDS_PER_CHANNEL);
+    FastLED.addLeds<WS2812B, PIN_LED_CH3, GRB>(ledChannel3, NUM_LEDS_PER_CHANNEL);
+    FastLED.addLeds<WS2812B, PIN_LED_CH4, GRB>(ledChannel4, NUM_LEDS_PER_CHANNEL);
 
     // Set brightness (25% for safe testing)
     FastLED.setBrightness(64);

@@ -38,8 +38,8 @@ On first boot, the device has no WiFi credentials configured.
 
 **Button Method (GPIO39, recommended for deployed devices):**
 
-1. Hold the reset button (GPIO39) for **3 seconds** — LEDs turn solid purple
-2. Release the button — device enters AP mode
+1. Hold the reset button (GPIO39) for **10 seconds** — LEDs turn solid purple
+2. Release the button (before 15s) — device enters AP mode
 3. Connect to WiFi network **"Matchstick-Setup"** (open network, no password)
 4. A captive portal opens automatically — enter your WiFi SSID and password
 5. Device saves credentials and reconnects

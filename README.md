@@ -22,7 +22,7 @@ A 4-channel ambient LED controller based on the M5Stack Stamp Pico (ESP32). Driv
 | ⓶ | **CH2 — Sputter Two** | Default hue: 0° (Red) |
 | ⓷ | **CH3 — Sputter Three** | Default hue: 90° (Yellow/Orange) |
 | ⓸ | **CH4 — Sputter Four** | Default hue: 180° (Cyan) |
-| ⓹ | **Reset button** | Quick press: restore channel defaults. Hold 3s: WiFi AP mode. Hold 10s+: factory reset |
+| ⓹ | **Reset button** | Quick press: force channels ON. Hold 3s: HSV reset. Hold 10s: WiFi AP mode. Hold 15s+: factory reset |
 | ⓺ | **Animation button** | Short press: cycle animation mode. Long press (2s): toggle inverted variant |
 
 ---
@@ -79,8 +79,8 @@ HomeKit lets you set custom colors, brightness, and on/off state per channel. Se
 
 #### Step 1 — Configure WiFi
 
-1. **Hold** the reset button ⓹ for **3 seconds**
-2. LEDs turn **solid purple** — release at 3 seconds to enter AP mode
+1. **Hold** the reset button ⓹ for **10 seconds**
+2. LEDs turn **solid purple** — release (before 15s) to enter AP mode
 3. Connect your phone to WiFi network **"Matchstick-Setup"** (open, no password)
 4. A captive portal opens — enter your home WiFi SSID and password
 5. The device saves credentials and reconnects automatically
@@ -128,9 +128,11 @@ Inverted modes use a dark sparkle base (most LEDs black) instead of the bright b
 
 | Hold Duration | Action |
 |---------------|--------|
-| Quick press (<3s) | Restore channel defaults (hue, brightness) |
-| 3 seconds | Enter WiFi AP mode (LEDs turn solid purple → release) |
-| 10+ seconds | Trigger factory reset warning animation (see [Factory Reset](#factory-reset)) |
+| Quick press (<3s) | Force all channels power ON, stop animations |
+| 3 seconds (while held) | Reset all channels to default colors immediately |
+| Release 3–10s | Idle — HSV reset already applied |
+| 10 seconds | LEDs turn solid purple; release to enter WiFi AP mode |
+| 15+ seconds | Pairing code display begins — factory reset warning (see [Factory Reset](#factory-reset)) |
 
 ---
 
@@ -213,12 +215,13 @@ Bright, undulating base layer where all 200 LEDs glow continuously.
 A full factory reset clears all HomeKit pairings, WiFi credentials, saved animation mode, and channel defaults.
 
 1. **Hold** the reset button ⓹ (GPIO39)
-2. At **3 seconds** — LEDs turn solid purple. Keep holding.
-3. At **10 seconds** — warning animation begins (3 cycles, ~7 seconds): 8 LEDs flash your pairing config ID in binary
-4. **Keep holding** through the warning animation
-5. When the animation ends, **factory reset executes** — device reboots fresh
+2. At **3 seconds** — all channels reset to default colors. Keep holding.
+3. At **10 seconds** — LEDs turn solid purple. Keep holding.
+4. At **15 seconds** — pairing code display begins (10 seconds): 8 LEDs show your pairing config ID in binary
+5. **Keep holding** through the entire display
+6. When the display ends, **factory reset executes** — red LEDs for 3s, then device reboots fresh
 
-To cancel: release the button at any point during the warning animation. LEDs turn **solid green** for 3 seconds to confirm, then resume normal operation.
+To cancel: release the button at any point during the pairing code display. LEDs turn **solid green** for 3 seconds to confirm, then resume normal operation.
 
 ---
 
@@ -249,7 +252,7 @@ Replace `release-0x08` with the tag for the release you're looking up.
 | Problem | Solution |
 |---------|----------|
 | **QR code not working** | Do a [factory reset](#factory-reset) first to clear previous pairings, then try scanning again. If it still fails, your device may be on a different firmware version — [use the interactive decoder](https://outofjungle.github.io/homekit-matchstick-sputter/) to find the right QR code. |
-| **WiFi not connecting** | Re-enter AP mode: hold the reset button for 3 seconds until LEDs turn purple, then release. Reconnect to "Matchstick-Setup" and re-enter credentials. |
+| **WiFi not connecting** | Re-enter AP mode: hold the reset button for 10 seconds until LEDs turn purple, then release. Reconnect to "Matchstick-Setup" and re-enter credentials. |
 | **Device not responding** | Try a [factory reset](#factory-reset) to restore the device to a clean state. |
 
 See [`docs/HOMESPAN.md`](docs/HOMESPAN.md) for additional HomeSpan-specific troubleshooting and serial commands.

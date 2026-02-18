@@ -252,6 +252,43 @@ public:
     // channel touched. Set from main.cpp after all channel services are created.
     void (*onHueChanged)(int hue) = nullptr;
 
+    // Reset H/S/B to compile-time defaults and force power ON
+    void applyDefaults() {
+        desired.power = true;
+        desired.hue = getDefaultHue(channelNumber);
+        desired.saturation = DEFAULT_SATURATION;
+        desired.brightness = DEFAULT_BRIGHTNESS;
+
+        ChannelStorage::ChannelState state;
+        state.power = true;
+        state.hue = desired.hue;
+        state.saturation = desired.saturation;
+        state.brightness = desired.brightness;
+        storage.save(state);
+
+        pendingHomeKitSync = true;
+        enterState(ChannelState::NORMAL);
+        Serial.printf("Channel %d: Reset to defaults H=%d S=%d%% B=%d%%\n",
+                      channelNumber, desired.hue, desired.saturation, desired.brightness);
+    }
+
+    // Force power ON without touching H/S/B
+    void forcePowerOn() {
+        if (desired.power) return;  // Already on
+        desired.power = true;
+
+        ChannelStorage::ChannelState state;
+        state.power = true;
+        state.hue = desired.hue;
+        state.saturation = desired.saturation;
+        state.brightness = desired.brightness;
+        storage.save(state);
+
+        pendingHomeKitSync = true;
+        enterState(ChannelState::NORMAL);
+        Serial.printf("Channel %d: Power forced ON\n", channelNumber);
+    }
+
     // Clear this channel's NVS storage (used during factory reset)
     void clearStorage() {
         storage.clear();

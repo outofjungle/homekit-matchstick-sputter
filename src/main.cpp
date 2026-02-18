@@ -33,19 +33,23 @@ NotificationManager* notificationMgr = nullptr;
 // Animation manager for ambient animations
 AnimationManager* animationMgr = nullptr;
 
-// Button state machine for GPIO39 (3-tier: short/AP/factory reset)
+// Button state machine for GPIO39 (5-tier: short/HSV/AP/pairing display/factory reset)
 enum class ButtonState {
     BTN_IDLE,               // Not pressed
-    BTN_PRESSED,            // Pressed, measuring duration
-    BTN_AP_READY,           // 3s reached, solid purple, waiting for release or 10s
-    BTN_FACTORY_WARNING,    // 3x warning animation (10s reached)
-    BTN_CANCELLED_CONFIRM,  // Warning cancelled, green feedback
+    BTN_PRESSED,            // Held, <3s
+    BTN_HSV_DONE,           // 3-10s, HSV reset already applied on entry
+    BTN_AP_READY,           // 10-15s, purple LEDs, AP mode on release
+    BTN_FACTORY_WARNING,    // 15-25s, pairing code display, tracking button release
+    BTN_FACTORY_CONFIRM,    // Red feedback (3s), then factory reset
+    BTN_FACTORY_CANCELLED,  // Green feedback (3s), then idle
     BTN_RESET               // Factory reset executing
 };
 
 ButtonState buttonState = ButtonState::BTN_IDLE;
 unsigned long buttonPressStartMs = 0;
-unsigned long confirmStartMs = 0;
+unsigned long warningStartMs = 0;           // When pairing display started
+unsigned long feedbackStartMs = 0;          // When red/green feedback started
+bool buttonReleasedDuringWarning = false;   // Track release during pairing display
 bool buttonLastState = HIGH;  // GPIO39 is pulled high, LOW when pressed
 bool animButtonLastState = HIGH;  // GPIO0 is pulled high, LOW when pressed
 
@@ -57,11 +61,14 @@ enum class AnimButtonState {
 AnimButtonState animButtonState = AnimButtonState::ANIM_BTN_IDLE;
 unsigned long animButtonPressStartMs = 0;
 
-// Forward declaration
+// Forward declarations
 void blankAllLEDs();
 void applyChannelDefaults();
 void updateAnimationButton();
 void activateAPMode();
+void handleFactoryReset();
+void resetAllChannelColors();
+void forceAllChannelsPowerOn();
 
 // AccessoryInformation service with Identify callback
 // Subclasses Service::AccessoryInformation so update() fires when Identify is written
@@ -198,7 +205,11 @@ void activateAPMode() {
     Serial.println("AP mode timed out, resuming normal operation");
 }
 
-// Apply channel defaults and validate NVS state
+// Validate NVS state and apply defaults only where needed.
+// Despite the name, this is NOT a full reset — it's a repair/validation pass.
+// Existing hue/saturation/brightness values are preserved unless they are out
+// of valid range or missing entirely. A full color reset requires factory reset
+// (20s hold on GPIO39).
 void applyChannelDefaults() {
     Serial.println("Applying channel defaults...");
 
@@ -255,6 +266,24 @@ void applyChannelDefaults() {
 }
 
 
+// Reset all channels to their compile-time default H/S/B and force power ON
+void resetAllChannelColors() {
+    if (channel1Service) channel1Service->applyDefaults();
+    if (channel2Service) channel2Service->applyDefaults();
+    if (channel3Service) channel3Service->applyDefaults();
+    if (channel4Service) channel4Service->applyDefaults();
+    Serial.println("All channels reset to default colors");
+}
+
+// Force power ON on all channels (preserves current H/S/B)
+void forceAllChannelsPowerOn() {
+    if (channel1Service) channel1Service->forcePowerOn();
+    if (channel2Service) channel2Service->forcePowerOn();
+    if (channel3Service) channel3Service->forcePowerOn();
+    if (channel4Service) channel4Service->forcePowerOn();
+    Serial.println("All channels forced power ON");
+}
+
 // Update button state machine
 void updateButtonStateMachine() {
     bool currentButtonState = digitalRead(PIN_BUTTON);
@@ -288,17 +317,33 @@ void updateButtonStateMachine() {
 
         case ButtonState::BTN_PRESSED:
             if (buttonJustReleased) {
-                // Released before 3s — reset to defaults
-                applyChannelDefaults();
+                // Short press (<3s) — force all channels power ON, stop animations
+                forceAllChannelsPowerOn();
                 if (animationMgr) {
                     animationMgr->setMode(AnimationMode::ANIM_NONE);
                 }
-                Serial.println("GPIO39 short press: reset to defaults");
+                Serial.println("GPIO39 short press: all channels forced ON, animations stopped");
+                buttonState = ButtonState::BTN_IDLE;
+            } else if ((now - buttonPressStartMs) >= HSV_RESET_MS) {
+                // 3s reached — apply HSV reset immediately, no orange indicator
+                buttonState = ButtonState::BTN_HSV_DONE;
+                resetAllChannelColors();
+                if (animationMgr) {
+                    animationMgr->setMode(AnimationMode::ANIM_NONE);
+                }
+                Serial.println("3s hold: HSV reset applied immediately");
+            }
+            break;
+
+        case ButtonState::BTN_HSV_DONE:
+            if (buttonJustReleased) {
+                // Released between 3s and 10s — HSV already applied, return to idle
+                Serial.println("GPIO39 3-10s release: idle (HSV already applied)");
                 buttonState = ButtonState::BTN_IDLE;
             } else if ((now - buttonPressStartMs) >= AP_ACTIVATE_MS) {
-                // Held for 3s — show solid purple immediately, AP is ready
+                // Held for 10s — show purple, AP mode on release
                 buttonState = ButtonState::BTN_AP_READY;
-                Serial.println("3s hold detected - AP mode ready");
+                Serial.println("10s hold: AP mode ready (purple indicator)");
                 blankAllLEDs();
                 notificationMgr->start(NotificationPattern::PATTERN_SOLID, CRGB::Purple, 0, 0);
             }
@@ -306,15 +351,17 @@ void updateButtonStateMachine() {
 
         case ButtonState::BTN_AP_READY:
             if (buttonJustReleased) {
-                // Released — activate AP mode
+                // Released between 10s and 15s — activate AP mode
                 notificationMgr->stop();
+                Serial.println("GPIO39 10-15s release: activating AP mode");
                 activateAPMode();
                 buttonState = ButtonState::BTN_IDLE;
-            } else if ((now - buttonPressStartMs) >= FACTORY_RESET_WARNING_MS) {
-                // Held for 10s total — start factory reset warning
+            } else if ((now - buttonPressStartMs) >= FACTORY_WARNING_MS) {
+                // Held for 15s — start pairing code display, track release for cancel/confirm
                 buttonState = ButtonState::BTN_FACTORY_WARNING;
-                confirmStartMs = now;
-                Serial.println("10s hold detected - entering factory reset warning mode...");
+                warningStartMs = now;
+                buttonReleasedDuringWarning = false;
+                Serial.println("15s hold: pairing code display started");
                 notificationMgr->stop();
                 blankAllLEDs();
                 notificationMgr->start(NotificationPattern::PATTERN_PAIRING_ID, CRGB::Black, 0, 0);
@@ -322,31 +369,46 @@ void updateButtonStateMachine() {
             break;
 
         case ButtonState::BTN_FACTORY_WARNING:
-            // Show static pairing ID for 3 seconds, then proceed
-            if ((now - confirmStartMs) >= 10000) {
+            // Track if button is released at any point during the display window
+            if (buttonJustReleased) {
+                buttonReleasedDuringWarning = true;
+                Serial.println("Button released during pairing display — will cancel on timeout");
+            }
+            // After minimum display duration, branch to confirm or cancel
+            if ((now - warningStartMs) >= PAIRING_DISPLAY_MS) {
                 notificationMgr->stop();
-
-                if (buttonPressed) {
-                    // Still held — execute factory reset
-                    Serial.println("Warning animation complete - button held, triggering factory reset");
-                    buttonState = ButtonState::BTN_RESET;
-                    handleFactoryReset();
-                } else {
-                    // Released — show green cancellation feedback
-                    Serial.println("Warning animation complete - button released, reset cancelled");
-                    buttonState = ButtonState::BTN_CANCELLED_CONFIRM;
-                    confirmStartMs = now;
+                feedbackStartMs = now;
+                if (buttonReleasedDuringWarning) {
+                    // Cancelled — green feedback, then idle
+                    buttonState = ButtonState::BTN_FACTORY_CANCELLED;
+                    blankAllLEDs();
                     notificationMgr->start(NotificationPattern::PATTERN_SOLID, CRGB::Green, 0, 0);
+                    Serial.println("Factory reset cancelled — showing green feedback");
+                } else {
+                    // Still held — confirmed, red feedback, then factory reset
+                    buttonState = ButtonState::BTN_FACTORY_CONFIRM;
+                    blankAllLEDs();
+                    notificationMgr->start(NotificationPattern::PATTERN_SOLID, CRGB::Red, 0, 0);
+                    Serial.println("Factory reset confirmed — showing red feedback");
                 }
             }
             break;
 
-        case ButtonState::BTN_CANCELLED_CONFIRM:
-            if ((now - confirmStartMs) >= FACTORY_RESET_CONFIRM_MS) {
-                // 3 seconds elapsed - resume normal operation
-                Serial.println("Resuming normal operation");
+        case ButtonState::BTN_FACTORY_CONFIRM:
+            // Show red for FEEDBACK_DISPLAY_MS, then execute factory reset
+            if ((now - feedbackStartMs) >= FEEDBACK_DISPLAY_MS) {
+                notificationMgr->stop();
+                buttonState = ButtonState::BTN_RESET;
+                handleFactoryReset();
+            }
+            break;
+
+        case ButtonState::BTN_FACTORY_CANCELLED:
+            // Show green for FEEDBACK_DISPLAY_MS, then return to idle
+            if ((now - feedbackStartMs) >= FEEDBACK_DISPLAY_MS) {
                 notificationMgr->stop();
                 buttonState = ButtonState::BTN_IDLE;
+                Serial.println("Factory reset cancel complete — resuming normal operation");
             }
             break;
 
@@ -397,7 +459,7 @@ void setup() {
 
     // Initialize button pins
     pinMode(PIN_BUTTON, INPUT_PULLUP);
-    Serial.println("Button pin configured (GPIO39 - factory reset).");
+    Serial.println("Button pin configured (GPIO39 - 4-tier hold actions).");
     pinMode(PIN_BUTTON_ANIM, INPUT_PULLUP);
     Serial.println("Button pin configured (GPIO0 - animation cycling).");
 
@@ -467,7 +529,7 @@ void setup() {
 
     Serial.println("========================================");
     Serial.println("Setup complete!");
-    Serial.println("Hold GPIO39 for 3s to activate AP mode (Sputter-Setup, open network)");
+    Serial.println("GPIO39: short=force ON | 3s=HSV reset | 10s=AP mode | 15s=pairing display | 25s=factory reset");
     Serial.println("After WiFi is connected, pair with HomeKit");
     Serial.println("========================================\n");
 

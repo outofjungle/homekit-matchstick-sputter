@@ -26,12 +26,12 @@ constexpr uint8_t NUM_LEDS_PER_CHANNEL = 200; // 200 LEDs per channel
 constexpr unsigned long BLINK_INTERVAL_MS = 500; // 500ms on, 500ms off = 1Hz blink
 constexpr unsigned long DEBOUNCE_MS = 50;        // Button debounce time
 
-// Factory Reset Configuration
-constexpr unsigned long AP_ACTIVATE_MS = 3000;            // 3 seconds - trigger AP mode
-constexpr unsigned long FACTORY_RESET_WARNING_MS = 10000; // 10 seconds - trigger warning animation (3x cycles)
-constexpr unsigned long FACTORY_RESET_CONFIRM_MS = 3000;  // 3 seconds - green confirmation display (cancel)
-// Note: Warning shows static PAIRING_ID pattern for 10s, then resets if still held
-// Total time if held: 10s (hold) + 10s (warning display) = ~20s to trigger reset
+// Button Hold Thresholds (GPIO39)
+constexpr unsigned long HSV_RESET_MS = 3000;        // 3s — HSV reset (fires immediately on hold)
+constexpr unsigned long AP_ACTIVATE_MS = 10000;     // 10s — show purple, AP mode activates on release
+constexpr unsigned long FACTORY_WARNING_MS = 15000; // 15s — start pairing code display
+constexpr unsigned long PAIRING_DISPLAY_MS = 10000; // 10s — minimum pairing display duration
+constexpr unsigned long FEEDBACK_DISPLAY_MS = 3000; // 3s — red/green feedback duration
 
 // AP Configuration
 constexpr const char *AP_SSID = "Matchstick-Setup"; // Open network (no password)

@@ -56,6 +56,11 @@ constexpr int NUM_CHANNELS = 4;
 constexpr int DEFAULT_BRIGHTNESS = 80;  // Minimum visible brightness (was MIN_BRIGHTNESS)
 constexpr int DEFAULT_SATURATION = 100; // Full color saturation
 
+// Global FastLED brightness scaler (0-255)
+// Applied on top of per-channel brightness — caps total output for power/thermal headroom
+// 128 = 50% (~24A max across 4×200 LED channels at 60mA/LED full white)
+constexpr uint8_t GLOBAL_BRIGHTNESS = 128;
+
 // Default hue per channel (90° spacing around color wheel)
 inline int getDefaultHue(int channelNum)
 {

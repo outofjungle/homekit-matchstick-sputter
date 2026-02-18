@@ -374,8 +374,8 @@ void setup() {
     FastLED.addLeds<WS2812B, PIN_LED_CH4, GRB>(ledChannel4, NUM_LEDS_PER_CHANNEL);
     FastLED.addLeds<SK6812, PIN_STATUS_SK6812, GRB>(ledStatus, 1);  // Status LED (CH0)
 
-    // Set brightness (25% for safe testing)
-    FastLED.setBrightness(64);
+    // Set brightness (50% global cap — power/thermal headroom for 4×200 LEDs)
+    FastLED.setBrightness(GLOBAL_BRIGHTNESS);
 
     // Initialize all LEDs to off
     fill_solid(ledChannel1, NUM_LEDS_PER_CHANNEL, CRGB::Black);

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Bump FIRMWARE_PATCH (if needed) and create a commit.
 
-Usage: python3 scripts/commit.py "WIP: commit message here"
+Usage:
+  python3 scripts/commit.py "commit message"           # commit only
+  python3 scripts/commit.py "commit message" --release # commit + tag as release
 """
 
 import re, subprocess, os, sys
@@ -36,10 +38,11 @@ def has_staged_changes():
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python3 scripts/commit.py \"commit message\"", file=sys.stderr)
+        print("Usage: python3 scripts/commit.py \"commit message\" [--release]", file=sys.stderr)
         sys.exit(1)
 
     message = sys.argv[1]
+    release = "--release" in sys.argv[2:]
 
     if not has_staged_changes():
         print("No staged changes. Stage files with git add before running.", file=sys.stderr)
@@ -74,6 +77,11 @@ def main():
 
     subprocess.run(["git", "commit", "-m", message], check=True)
     print(f"Committed — firmware version: {version}")
+
+    if release:
+        tag = f"release-0x{current_id:02x}"
+        subprocess.run(["git", "tag", "-f", tag], check=True)
+        print(f"Tagged: {tag}")
 
 if __name__ == "__main__":
     main()

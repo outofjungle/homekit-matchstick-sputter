@@ -539,7 +539,7 @@
 
       // values[0] = LED 8 = MSB (bit 7), values[7] = LED 1 = LSB (bit 0)
       const decimal = values.reduce((acc, bit) => (acc << 1) | parseInt(bit, 10), 0);
-      const hex = decimal.toString(16).toUpperCase().padStart(2, '0');
+      const hex = decimal.toString(16).padStart(2, '0');
       const tag = `release-0x${hex}`;
 
       resultEl.innerHTML = `Build release version: <span class="hex-value">0x${hex}</span>`;
@@ -582,7 +582,7 @@
         if (releaseTags.length === 0) return;
 
         const latest = releaseTags[0];
-        const hex = latest.value.toString(16).toUpperCase().padStart(2, '0');
+        const hex = latest.value.toString(16).padStart(2, '0');
         const binary = latest.value.toString(2).padStart(8, '0');
 
         const dotsEl = document.getElementById('latestReleaseDots');

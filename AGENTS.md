@@ -71,21 +71,15 @@ After each working change, **ask the user** if they want to commit. If yes, foll
 - For any untracked, non-gitignored files, **ask the user** whether to include them
 
 **Step 2 — Determine if flashed and tested:**
-- If the user confirms the build has been flashed and tested on device → clean commit message, no prefix
-- If not yet verified on hardware → prefix message with `WIP:`
+- If the user confirms the build has been flashed and tested on device → pass `--release`
+- If not yet verified on hardware → omit `--release`
 
 **Step 3 — Stage and commit:**
 ```bash
 git add <files>
-python3 scripts/commit.py "your commit message"
+python3 scripts/commit.py "your commit message"           # unverified
+python3 scripts/commit.py "your commit message" --release # verified, creates release tag
 ```
-
-**Step 4 — Tag if verified:**
-- If flashed and tested: read `PAIRING_CONFIG_ID` from `src/pairing_config.h`, convert to hex, and tag:
-  ```bash
-  git tag -f release-0xHH   # e.g. PAIRING_CONFIG_ID=20 → release-0x14
-  ```
-- If not verified: skip tagging
 
 ### Firmware Version
 The firmware version is `FIRMWARE_MAJOR.PAIRING_CONFIG_ID.FIRMWARE_PATCH` (e.g. `1.13.0`).
@@ -94,3 +88,4 @@ The firmware version is `FIRMWARE_MAJOR.PAIRING_CONFIG_ID.FIRMWARE_PATCH` (e.g. 
 - Bumps `FIRMWARE_PATCH` if `PAIRING_CONFIG_ID` hasn't changed since the latest `release-0x*` tag
 - Stages `src/pairing_config.h` with the bump
 - Does NOT bump if `PAIRING_CONFIG_ID` changed (patch already reset to 0 by `generate_pairing.py`)
+- Creates/updates `release-0xhh` tag when `--release` is passed

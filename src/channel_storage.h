@@ -29,8 +29,9 @@ public:
             return false;
         }
 
-        // Check if any data exists (check for a known key)
-        if (!prefs.isKey("power")) {
+        // Require all four keys to be present — a partial record is treated as missing
+        if (!prefs.isKey("power") || !prefs.isKey("hue") ||
+            !prefs.isKey("sat") || !prefs.isKey("bri")) {
             prefs.end();
             return false;
         }

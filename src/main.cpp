@@ -543,7 +543,7 @@ void loop() {
 
     // Update notification animations if active (highest priority)
     if (notificationMgr->isActive()) {
-        bool running = notificationMgr->update(NUM_LEDS_PER_CHANNEL);
+        bool running = notificationMgr->update();
         if (!running) {
             notificationMgr->stop();
         }

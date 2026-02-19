@@ -251,7 +251,7 @@ public:
         }
     }
 
-    bool update(uint16_t numLeds) {
+    bool update() {
         return state.update(channel1, channel2, channel3, channel4);
     }
 

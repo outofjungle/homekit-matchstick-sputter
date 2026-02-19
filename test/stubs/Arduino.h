@@ -1,6 +1,23 @@
 #pragma once
 #include <cstdint>
 #include <cstdlib>
+#include <cstdarg>
+#include <cstdio>
+
+// Arduino boolean type
+typedef uint8_t boolean;
+
+// Controllable millis() for tests — set _stub_millis before calling update()
+inline unsigned long _stub_millis = 0;
+inline unsigned long millis() { return _stub_millis; }
+
+// Minimal Serial stub
+struct _SerialClass {
+    void printf(const char* fmt, ...) { (void)fmt; }
+    void print(const char*) {}
+    void println(const char*) {}
+};
+inline _SerialClass Serial;
 
 // Arduino-like random functions
 inline long random(long max) { return std::rand() % max; }

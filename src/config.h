@@ -46,10 +46,10 @@ constexpr const char *DEVICE_SERIAL = "SPT-001";
 constexpr const char *DEVICE_MODEL = "4CH-LED";
 // Firmware version: major.minor.patch
 //   major = FIRMWARE_MAJOR (manual), minor = PAIRING_CONFIG_ID (auto), patch = FIRMWARE_PATCH (per-commit)
-#define _STRINGIFY(x) #x
-#define _TOSTRING(x)  _STRINGIFY(x)
+#define FIRMWARE_STRINGIFY(x) #x
+#define FIRMWARE_TOSTRING(x)  FIRMWARE_STRINGIFY(x)
 constexpr const char *DEVICE_FIRMWARE =
-    _TOSTRING(FIRMWARE_MAJOR) "." _TOSTRING(PAIRING_CONFIG_ID) "." _TOSTRING(FIRMWARE_PATCH);
+    FIRMWARE_TOSTRING(FIRMWARE_MAJOR) "." FIRMWARE_TOSTRING(PAIRING_CONFIG_ID) "." FIRMWARE_TOSTRING(FIRMWARE_PATCH);
 
 // Channel Defaults
 constexpr int NUM_CHANNELS = 4;

@@ -138,7 +138,7 @@ public:
     }
 
     // HomeSpan loop - sync device state changes to HomeKit
-    void loop() {
+    void loop() override {
         if (!pendingHomeKitSync) return;
         pendingHomeKitSync = false;
 

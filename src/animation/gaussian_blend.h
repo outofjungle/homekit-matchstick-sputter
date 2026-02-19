@@ -23,7 +23,7 @@ struct GaussianBlendLUT {
     //   - 5.0 gives ~12-14 pixel visible width at center
     void compute(float variance) {
         float halfLen = LENGTH / 2.0f;
-        for (uint8_t i = 0; i < LENGTH; i++) {
+        for (uint16_t i = 0; i < LENGTH; i++) {
             float x = (i - halfLen);
             float g = expf(-(x * x) / (2.0f * variance));
             int val = (int)(g * 255.0f + 0.5f);

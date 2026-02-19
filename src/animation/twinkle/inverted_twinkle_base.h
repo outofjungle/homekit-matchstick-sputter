@@ -10,7 +10,7 @@ class InvertedTwinkleBase : public TwinkleAnimationBase, public SparkleBaseLayer
 public:
     void begin() override
     {
-        memset(baseBrightness, 0, sizeof(baseBrightness));
+        resetBaseLayer();  // initializes all Markov arrays (hue, brightness, saturation dirs)
         initSparkleBaseLayer(channelHue);
         for (int ch = 0; ch < 4; ch++)
         {
@@ -20,7 +20,7 @@ public:
                 twinkles[ch][t].ledIndex = 0;
                 twinkles[ch][t].frameCounter = 0;
             }
-            rampFrame[ch] = 0;
+            rampFrame[ch] = 0;  // intentional: no stagger — all channels ramp together from silence
         }
         frameAccumulator = 0;
     }

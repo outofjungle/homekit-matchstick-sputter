@@ -23,6 +23,7 @@ public:
     static constexpr uint16_t SPARKLE_MAX_LEDS     = NUM_LEDS_PER_CHANNEL;
     static_assert(SPARKLE_MAX_LEDS > 0, "NUM_LEDS_PER_CHANNEL must be > 0");
     static constexpr uint16_t DARK_MAX_ACTIVE_LEDS = SPARKLE_MAX_LEDS / 5;   // 40 = 20% cap
+    static_assert(DARK_MAX_ACTIVE_LEDS < SPARKLE_MAX_LEDS, "Must have inactive LEDs for random selection to terminate");
     static constexpr uint8_t  LIFE_SPEED_MIN       = 2;                       // ~6.4 s hump at 20 fps
     static constexpr uint8_t  LIFE_SPEED_MAX       = 6;                       // ~2.1 s hump at 20 fps
     static constexpr uint8_t  SPARKLE_MIN_SAT      = 128;

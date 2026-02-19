@@ -10,6 +10,7 @@ class InvertedRainBase : public RainAnimationBase, public SparkleBaseLayer
 public:
     void begin() override
     {
+        resetBaseLayer();
         initSparkleBaseLayer(channelHue);
         for (int ch = 0; ch < 4; ch++)
         {

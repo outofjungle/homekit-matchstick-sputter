@@ -12,6 +12,7 @@ Also generates docs/img/pairing_qr.png if qrcode and Pillow are installed:
 import secrets
 import re
 import os
+import sys
 
 HEADER_PATH = os.path.join(os.path.dirname(__file__), "..", "src", "pairing_config.h")
 QR_IMAGE_PATH = os.path.join(os.path.dirname(__file__), "..", "docs", "img", "pairing_qr.png")
@@ -130,6 +131,9 @@ def generate_qr_image(uri, formatted_code, output_path):
 
 def main():
     config_id = read_current_config_id(HEADER_PATH) + 1
+    if config_id > 255:
+        print(f"ERROR: PAIRING_CONFIG_ID overflow ({config_id} > 255). Reset manually.", file=sys.stderr)
+        sys.exit(1)
     firmware_major = read_firmware_major(HEADER_PATH)
     setup_code = generate_setup_code()
     setup_id = generate_setup_id()

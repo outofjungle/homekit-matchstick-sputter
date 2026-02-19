@@ -80,6 +80,7 @@ enum class AnimationMode {
     ANIM_RAINBOW,                                 // Full-spectrum rainbow sweep
     ANIM_COUNT                                    // Total number of modes (for cycling)
 };
+static_assert(static_cast<int>(AnimationMode::ANIM_COUNT) <= 255, "AnimationMode must fit in uint8_t for NVS storage");
 
 // Animation Manager
 // Coordinates ambient animations across all 4 channels

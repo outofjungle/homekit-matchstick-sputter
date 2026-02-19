@@ -171,7 +171,7 @@ private:
 
     // Display PAIRING_CONFIG_ID as binary on LEDs 0-7
     // Bit 0 → LED[0] (LSB), bit 7 → LED[7] (MSB)
-    // Bit=0: blue at 50%, Bit=1: purple at 100%
+    // Bit=0: blue at 50%, Bit=1: red at 100%
     void renderPairingId(CRGB* ch1, CRGB* ch2, CRGB* ch3, CRGB* ch4) {
         static const CRGB bitOff(0, 0, 128);     // Blue at 50%
         static const CRGB bitOn(255, 0, 0);      // Red at 100%

@@ -10,6 +10,7 @@ class InvertedRunnerBase : public RunnerAnimationBase, public SparkleBaseLayer
 public:
     void begin() override
     {
+        resetBaseLayer();
         gaussianLUT.compute(GAUSSIAN_VARIANCE);
         initSparkleBaseLayer(channelHue);
         for (int ch = 0; ch < 4; ch++)

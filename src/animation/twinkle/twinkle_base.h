@@ -25,6 +25,7 @@ public:
     static constexpr uint8_t MIN_TWINKLES = 20;       // At brightness=100 (10% of 200 LEDs)
     static constexpr uint8_t MAX_TWINKLES = 200;      // At brightness<=5 (100% of 200 LEDs)
     static constexpr uint8_t MAX_TWINKLE_SLOTS = 200; // Must equal MAX_TWINKLES
+    static_assert(MAX_TWINKLES == MAX_TWINKLE_SLOTS, "MAX_TWINKLES must equal MAX_TWINKLE_SLOTS");
     static constexpr uint8_t CRASH_FRAMES = 2;        // Duration of rapid brightness changes
     static constexpr uint8_t RISE_FRAMES = 2;
     static constexpr uint8_t FINAL_CRASH_FRAMES = 2;
@@ -150,8 +151,8 @@ protected:
                         tw.phase = PHASE_RISE_UP;
                         tw.frameCounter = 0;
                         tw.sat = random(256);
-                        uint8_t dummyV;
-                        pickHarmonyColor(ch, tw.hue, tw.sat, dummyV);
+                        uint8_t v; // brightness output not used here; handled separately
+                        pickHarmonyColor(ch, tw.hue, tw.sat, v);
 
                         // Determine saturation journey direction (longest path)
                         if (tw.sat >= 128)

@@ -121,6 +121,7 @@ protected:
 
             // Calculate max raindrops based on brightness (inverted: low brightness = more raindrops)
             int maxRaindrops = MAX_RAINDROPS - (cachedBrightness[ch] * (MAX_RAINDROPS - MIN_RAINDROPS)) / 100;
+            if (maxRaindrops < 1) maxRaindrops = 1; // Guard against division by zero below
 
             // Count active raindrops
             int activeCount = 0;
@@ -170,7 +171,7 @@ private:
         {
             if (raindrops[channelIndex][r].active)
             {
-                int16_t distance = abs(pos - raindrops[channelIndex][r].centerPos);
+                int16_t distance = (int16_t)abs((int32_t)pos - (int32_t)raindrops[channelIndex][r].centerPos);
                 if (distance < RAINDROP_LENGTH)
                 {
                     return true; // Collision detected

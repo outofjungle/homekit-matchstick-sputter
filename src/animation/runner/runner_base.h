@@ -133,6 +133,7 @@ protected:
 
                 // Calculate max runners based on brightness (inverted: low brightness = more runners)
                 int maxRunners = MAX_RUNNERS - (cachedBrightness[ch] * (MAX_RUNNERS - MIN_RUNNERS)) / 100;
+                if (maxRunners < 1) maxRunners = 1; // Guard against division by zero below
 
                 // Count active runners
                 int activeCount = 0;

@@ -451,10 +451,12 @@ void setup() {
 
     // Initialize notification manager
     notificationMgr = new NotificationManager(ledChannel1, ledChannel2, ledChannel3, ledChannel4);
+    if (!notificationMgr) { Serial.println("FATAL: NotificationManager allocation failed"); return; }
     Serial.println("Notification manager initialized.");
 
     // Initialize animation manager
     animationMgr = new AnimationManager(ledChannel1, ledChannel2, ledChannel3, ledChannel4, NUM_LEDS_PER_CHANNEL);
+    if (!animationMgr) { Serial.println("FATAL: AnimationManager allocation failed"); return; }
     Serial.println("Animation manager initialized.");
 
     // Initialize button pins

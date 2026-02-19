@@ -91,7 +91,7 @@ public:
 protected:
     // Runner state
     Runner runners[4][MAX_RUNNER_SLOTS]; // Per channel
-    uint16_t framesSinceSpawn[4];        // Per channel, for spawn probability
+    uint32_t framesSinceSpawn[4];        // Per channel, for spawn probability
 
     // Gaussian blend lookup table
     GaussianBlendLUT<RUNNER_LENGTH> gaussianLUT;

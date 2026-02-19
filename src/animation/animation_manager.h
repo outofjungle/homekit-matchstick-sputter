@@ -299,12 +299,6 @@ private:
     CRGB savedCh4[NUM_LEDS_PER_CHANNEL];
 
     void startCurrentAnimation() {
-        // Tell all channel services to yield to animation
-        if (channelService1) channelService1->yieldToAnimation();
-        if (channelService2) channelService2->yieldToAnimation();
-        if (channelService3) channelService3->yieldToAnimation();
-        if (channelService4) channelService4->yieldToAnimation();
-
         // Save current LED state
         for (int i = 0; i < numLedsPerChannel; i++) {
             savedCh1[i] = channel1[i];
@@ -313,9 +307,15 @@ private:
             savedCh4[i] = channel4[i];
         }
 
-        // Instantiate the new animation
+        // Instantiate the new animation (must succeed before yielding FSM state)
         currentAnimation = createAnimation(currentMode);
         if (!currentAnimation) return;
+
+        // Tell all channel services to yield to animation (only after confirming allocation)
+        if (channelService1) channelService1->yieldToAnimation();
+        if (channelService2) channelService2->yieldToAnimation();
+        if (channelService3) channelService3->yieldToAnimation();
+        if (channelService4) channelService4->yieldToAnimation();
 
         // Set channel hues and brightnesses from HomeKit state (polymorphic dispatch)
         if (channelService1 && channelService2 && channelService3 && channelService4) {

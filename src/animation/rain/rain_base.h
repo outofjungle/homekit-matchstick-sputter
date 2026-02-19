@@ -95,7 +95,7 @@ public:
 protected:
     // Raindrop state
     Raindrop raindrops[4][MAX_RAINDROP_SLOTS]; // Per channel
-    uint16_t framesSinceSpawn[4];              // Per channel, for spawn probability
+    uint32_t framesSinceSpawn[4];              // Per channel, for spawn probability
 
     // Update raindrops (aging and spawning) — called by update() and inverted subclasses
     void updateRaindrops()

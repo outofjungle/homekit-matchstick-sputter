@@ -225,8 +225,9 @@ private:
         {
             CRGB baseColor = getBaseLedColor(channelIndex, i);
 
-            // Check if any raindrop covers this LED
+            // Check if any raindrop covers this LED; use the one with highest blend weight
             CRGB finalColor = baseColor;
+            uint8_t bestBlendFactor = 0;
 
             for (int r = 0; r < MAX_RAINDROP_SLOTS; r++)
             {
@@ -241,14 +242,14 @@ private:
                 // Check if LED is within raindrop range
                 if (i >= minPos && i <= maxPos)
                 {
-                    // This LED is in this raindrop
+                    // Keep the raindrop with the strongest Gaussian blend weight
                     CRGB raindropColor = CHSV(drop.hue, drop.sat, drop.val);
-
-                    // Calculate blend amount using time-varying Gaussian
                     uint8_t blendFactor = computeRaindropBlend(drop, i);
-                    finalColor = blend(baseColor, raindropColor, blendFactor);
-
-                    break; // Only apply first raindrop found
+                    if (blendFactor > bestBlendFactor)
+                    {
+                        bestBlendFactor = blendFactor;
+                        finalColor = blend(baseColor, raindropColor, blendFactor);
+                    }
                 }
             }
 

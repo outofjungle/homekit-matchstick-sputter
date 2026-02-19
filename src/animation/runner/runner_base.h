@@ -182,8 +182,9 @@ protected:
         {
             CRGB baseColor = getBaseLedColor(channelIndex, i);
 
-            // Check if any runner covers this LED
+            // Check if any runner covers this LED; use the one with highest blend weight
             CRGB finalColor = baseColor;
+            uint8_t bestBlendFactor = 0;
 
             for (int r = 0; r < MAX_RUNNER_SLOTS; r++)
             {
@@ -201,11 +202,14 @@ protected:
                         runners[channelIndex][r].sat,
                         runners[channelIndex][r].val);
 
-                    // Calculate blend amount using Gaussian LUT
+                    // Keep the runner with the strongest Gaussian blend weight
                     int posInRunner = i - tailPos;
                     uint8_t blendFactor = gaussianLUT.table[posInRunner];
-                    finalColor = blend(baseColor, runnerColor, blendFactor);
-                    break; // Only apply first runner found
+                    if (blendFactor > bestBlendFactor)
+                    {
+                        bestBlendFactor = blendFactor;
+                        finalColor = blend(baseColor, runnerColor, blendFactor);
+                    }
                 }
             }
 

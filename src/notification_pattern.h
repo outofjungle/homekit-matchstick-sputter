@@ -10,6 +10,7 @@ struct DEV_LedChannel;
 // Number of LEDs used for notification patterns (first N LEDs of each channel)
 static constexpr uint8_t NOTIFICATION_LEDS = 8;
 static_assert(NOTIFICATION_LEDS >= 8, "NOTIFICATION_LEDS must be >= 8 for PAIRING_CONFIG_ID binary rendering");
+static_assert(PAIRING_CONFIG_ID <= 255, "PAIRING_CONFIG_ID must fit in 8 bits for binary LED rendering");
 
 // Notification pattern types
 enum class NotificationPattern {

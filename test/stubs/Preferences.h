@@ -20,8 +20,9 @@ public:
         auto& m = store()[ns_];
         return m.count(key) > 0;
     }
-    void putBool(const char* key, bool v)  { store()[ns_][key] = v ? 1 : 0; }
-    void putInt (const char* key, int  v)  { store()[ns_][key] = v; }
+    void putBool (const char* key, bool    v) { store()[ns_][key] = v ? 1 : 0; }
+    void putInt  (const char* key, int     v) { store()[ns_][key] = v; }
+    void putUChar(const char* key, uint8_t v) { store()[ns_][key] = (int)v; }
 
     bool getBool(const char* key, bool def = false) {
         auto& m = store()[ns_];
@@ -32,6 +33,11 @@ public:
         auto& m = store()[ns_];
         auto it = m.find(key);
         return (it != m.end()) ? (int)it->second : def;
+    }
+    uint8_t getUChar(const char* key, uint8_t def = 0) {
+        auto& m = store()[ns_];
+        auto it = m.find(key);
+        return (it != m.end()) ? (uint8_t)it->second : def;
     }
     void clear() { store()[ns_].clear(); }
 

@@ -6,4 +6,4 @@
 #define PAIRING_CONFIG_ID  19               // Incremented each generation
 
 #define FIRMWARE_MAJOR  1                   // Rolled manually
-#define FIRMWARE_PATCH  1                   // Reset to 0 when PAIRING_CONFIG_ID changes
+#define FIRMWARE_PATCH  2                   // Reset to 0 when PAIRING_CONFIG_ID changes
